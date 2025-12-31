@@ -1,0 +1,24 @@
+# Laravel
+/vendor/
+/node_modules/
+/public/storage
+/storage/*.key
+/.env
+/.env.backup
+/.phpunit.result.cache
+/database/database.sqlite
+/database/database.sqlite-journal
+/docker-compose.override.yml
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+/.idea
+/.vscode
+
+# OS
+.DS_Store
+Thumbs.db
+
+# XAMPP
+/xampp/

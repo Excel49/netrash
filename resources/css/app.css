@@ -1,0 +1,9 @@
+﻿/* NetraTrash Custom CSS - Will be overridden by inline styles */
+:root {
+    --primary-color: #28a745;
+    --secondary-color: #20c997;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
