@@ -1,193 +1,171 @@
 @extends('layouts.app')
+
 @section('title', 'Dashboard Warga')
 
 @section('content')
 <div class="row mb-4">
-    <div class="col-md-8">
+    <div class="col-12">
         <h2 class="mb-0">Dashboard Warga</h2>
-        <p class="text-muted">Selamat datang, {{ Auth::user()->nama_lengkap }}!</p>
-    </div>
-    <div class="col-md-4 text-end">
-        <a href="{{ route('warga.qr') }}" class="btn btn-outline-success">
-            <i class="bi bi-qr-code me-1"></i> QR Code Saya
-        </a>
+        <p class="text-muted">Selamat datang, {{ auth()->user()->name }}!</p>
     </div>
 </div>
 
-<div class="row">
-    <!-- Statistik Poin -->
+<!-- Stats Cards -->
+<div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card stat-card border-left-primary shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs fw-bold text-primary text-uppercase mb-1">
-                            Total Poin
-                        </div>
-                        <div class="h5 mb-0 fw-bold text-gray-800">
-                            {{ number_format(Auth::user()->total_poin) }}
-                        </div>
-                        <div class="small text-muted">
-                            ≈ Rp {{ number_format(Auth::user()->total_poin * 100, 0, ',', '.') }}
-                        </div>
+        <div class="card card-primary h-100">
+            <div class="card-body stat-card">
+                <div class="row align-items-center">
+                    <div class="col-8">
+                        <h6 class="text-uppercase mb-0">Total Poin</h6>
+                        <div class="stat-number">{{ number_format(auth()->user()->total_points, 0, ',', '.') }}</div>
+                        <small class="text-muted">Rp {{ number_format(auth()->user()->total_points * 100, 0, ',', '.') }}</small>
                     </div>
-                    <div class="col-auto">
-                        <i class="bi bi-star-fill fa-2x text-warning"></i>
+                    <div class="col-4 text-end">
+                        <i class="bi bi-coin stat-icon text-primary"></i>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Statistik Transaksi -->
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card stat-card border-left-success shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs fw-bold text-success text-uppercase mb-1">
-                            Total Transaksi
-                        </div>
-                        <div class="h5 mb-0 fw-bold text-gray-800">
-                            {{ Auth::user()->transaksiWarga()->count() }}
-                        </div>
-                        <div class="small text-muted">
-                            {{ Auth::user()->transaksiWarga()->where('status', 'selesai')->count() }} selesai
-                        </div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="bi bi-receipt fa-2x text-success"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Statistik Sampah -->
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card stat-card border-left-info shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs fw-bold text-info text-uppercase mb-1">
-                            Total Berat Sampah
-                        </div>
-                        <div class="h5 mb-0 fw-bold text-gray-800">
-                            {{ number_format(Auth::user()->transaksiWarga()->sum('total_berat_kg'), 2) }} kg
-                        </div>
-                        <div class="small text-muted">
-                            Berkontribusi pada lingkungan
-                        </div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="bi bi-trash fa-2x text-info"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Statistik Penarikan -->
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card stat-card border-left-warning shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs fw-bold text-warning text-uppercase mb-1">
-                            Penarikan Poin
-                        </div>
-                        <div class="h5 mb-0 fw-bold text-gray-800">
-                            {{ Auth::user()->penarikanPoin()->count() }}
-                        </div>
-                        <div class="small text-muted">
-                            {{ Auth::user()->penarikanPoin()->where('status_pengajuan', 'disetujui')->count() }} disetujui
-                        </div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="bi bi-wallet2 fa-2x text-warning"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Grafik dan Chart -->
-<div class="row mt-4">
-    <div class="col-md-8">
-        <div class="card shadow">
-            <div class="card-header bg-white">
-                <h6 class="m-0 fw-bold">Grafik Transaksi 6 Bulan Terakhir</h6>
-            </div>
-            <div class="card-body">
-                <canvas id="transaksiChart" height="250"></canvas>
             </div>
         </div>
     </div>
     
-    <div class="col-md-4">
-        <div class="card shadow">
-            <div class="card-header bg-white">
-                <h6 class="m-0 fw-bold">Kategori Sampah</h6>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card card-success h-100">
+            <div class="card-body stat-card">
+                <div class="row align-items-center">
+                    <div class="col-8">
+                        <h6 class="text-uppercase mb-0">Total Transaksi</h6>
+                        <div class="stat-number">{{ $totalTransaksi }}</div>
+                        <small class="text-muted">{{ number_format($totalBerat, 1) }} kg sampah</small>
+                    </div>
+                    <div class="col-4 text-end">
+                        <i class="bi bi-receipt stat-icon text-success"></i>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <canvas id="kategoriChart" height="250"></canvas>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card card-warning h-100">
+            <div class="card-body stat-card">
+                <div class="row align-items-center">
+                    <div class="col-8">
+                        <h6 class="text-uppercase mb-0">Penarikan Pending</h6>
+                        <div class="stat-number">{{ $pendingPenarikan }}</div>
+                        <small class="text-muted">{{ number_format($totalPendingPoin, 0, ',', '.') }} poin</small>
+                    </div>
+                    <div class="col-4 text-end">
+                        <i class="bi bi-cash-coin stat-icon text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card card-info h-100">
+            <div class="card-body stat-card">
+                <div class="row align-items-center">
+                    <div class="col-8">
+                        <h6 class="text-uppercase mb-0">Poin Ditarik</h6>
+                        <div class="stat-number">{{ number_format($totalPoinDitarik, 0, ',', '.') }}</div>
+                        <small class="text-muted">Rp {{ number_format($totalPoinDitarik * 100, 0, ',', '.') }}</small>
+                    </div>
+                    <div class="col-4 text-end">
+                        <i class="bi bi-cash-stack stat-icon text-info"></i>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Riwayat Transaksi Terbaru -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card shadow">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h6 class="m-0 fw-bold">Riwayat Transaksi Terbaru</h6>
-                <a href="{{ route('warga.transaksi.history') }}" class="btn btn-sm btn-outline-success">
-                    Lihat Semua
-                </a>
+<div class="row">
+    <!-- QR Code Card -->
+    <div class="col-lg-5 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">QR Code Saya</h6>
+            </div>
+            <div class="card-body text-center">
+                @if(auth()->user()->qr_code)
+                    <img src="{{ asset('storage/' . auth()->user()->qr_code) }}" alt="QR Code" class="img-fluid mb-3" width="200">
+                @else
+                    <div class="mb-4" style="background-color: #f8f9fa; padding: 20px; border-radius: 10px;">
+                        <div class="text-muted mb-2">QR Code belum tersedia</div>
+                        <div class="small text-muted">Hubungi admin untuk generate QR Code</div>
+                    </div>
+                @endif
+                <p class="text-muted">Tunjukkan QR Code ini ke petugas untuk transaksi</p>
+                <button onclick="alert('Fitur download akan segera tersedia')" class="btn btn-netra">
+                    <i class="bi bi-download me-2"></i>Download QR Code
+                </button>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">Aksi Cepat</h6>
             </div>
             <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ route('warga.penarikan.create') }}" class="btn btn-netra">
+                        <i class="bi bi-cash-coin me-2"></i>Ajukan Penarikan Poin
+                    </a>
+                    <a href="{{ route('warga.transaksi.index') }}" class="btn btn-netra-outline">
+                        <i class="bi bi-history me-2"></i>Lihat Riwayat Transaksi
+                    </a>
+                    <a href="{{ route('warga.kategori.index') }}" class="btn btn-netra-outline">
+                        <i class="bi bi-info-circle me-2"></i>Informasi Kategori
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Transactions -->
+    <div class="col-lg-7 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Transaksi Terbaru</h6>
+                <a href="{{ route('warga.transaksi.index') }}" class="btn btn-sm btn-netra">Lihat Semua</a>
+            </div>
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover mb-0">
                         <thead>
                             <tr>
                                 <th>Tanggal</th>
+                                <th>Kode Transaksi</th>
                                 <th>Berat (kg)</th>
-                                <th>Total Poin</th>
+                                <th>Poin</th>
                                 <th>Petugas</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($transaksis as $transaksi)
+                            @forelse($recentTransactions as $transaksi)
                             <tr>
-                                <td>{{ $transaksi->tgl_transaksi->format('d/m/Y H:i') }}</td>
-                                <td>{{ number_format($transaksi->total_berat_kg, 2) }}</td>
+                                <td>{{ $transaksi->tanggal_transaksi->format('d/m/Y') }}</td>
+                                <td>{{ $transaksi->kode_transaksi }}</td>
+                                <td>{{ number_format($transaksi->total_berat, 1) }}</td>
+                                <td class="text-success fw-bold">+{{ number_format($transaksi->total_poin, 0, ',', '.') }}</td>
+                                <td>{{ $transaksi->petugas->name }}</td>
                                 <td>
-                                    <span class="badge bg-warning text-dark">
-                                        {{ number_format($transaksi->total_poin) }}
-                                    </span>
-                                </td>
-                                <td>{{ $transaksi->petugas->nama_lengkap ?? '-' }}</td>
-                                <td>
-                                    @if($transaksi->status == 'selesai')
-                                        <span class="badge bg-success">Selesai</span>
-                                    @elseif($transaksi->status == 'menunggu_konfirmasi')
-                                        <span class="badge bg-warning">Menunggu</span>
-                                        <a href="{{ route('warga.transaksi.confirm', $transaksi->id) }}" 
-                                           class="btn btn-sm btn-success ms-2"
-                                           onclick="return confirm('Konfirmasi transaksi?')">
-                                            Konfirmasi
-                                        </a>
+                                    @if($transaksi->status == 'completed')
+                                    <span class="badge bg-success">Selesai</span>
                                     @else
-                                        <span class="badge bg-danger">Dibatalkan</span>
+                                    <span class="badge bg-warning">{{ $transaksi->status }}</span>
                                     @endif
                                 </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="5" class="text-center">Belum ada transaksi</td>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    Belum ada transaksi
+                                </td>
                             </tr>
                             @endforelse
                         </tbody>
@@ -195,66 +173,58 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Poin History Chart -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">Riwayat Poin 30 Hari Terakhir</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="poinChart" height="150"></canvas>
+            </div>
+        </div>
     </div>
 </div>
-@endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Data untuk chart (dari controller)
-    const transaksiData = @json($chartData['transaksi'] ?? []);
-    const kategoriData = @json($chartData['kategori'] ?? []);
-    
-    // Chart Transaksi
-    const transaksiCtx = document.getElementById('transaksiChart').getContext('2d');
-    new Chart(transaksiCtx, {
+document.addEventListener('DOMContentLoaded', function() {
+    // Poin History Chart
+    const poinCtx = document.getElementById('poinChart').getContext('2d');
+    const poinChart = new Chart(poinCtx, {
         type: 'line',
         data: {
-            labels: transaksiData.labels || ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun'],
+            labels: @json($chartLabels),
             datasets: [{
-                label: 'Berat Sampah (kg)',
-                data: transaksiData.data || [12, 19, 3, 5, 2, 3],
-                borderColor: '#28a745',
-                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                label: 'Poin',
+                data: @json($chartData),
+                borderColor: '#2E8B57',
+                backgroundColor: 'rgba(46, 139, 87, 0.1)',
                 borderWidth: 2,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-    
-    // Chart Kategori
-    const kategoriCtx = document.getElementById('kategoriChart').getContext('2d');
-    new Chart(kategoriCtx, {
-        type: 'doughnut',
-        data: {
-            labels: kategoriData.labels || ['Organik', 'Anorganik', 'B3', 'Campuran'],
-            datasets: [{
-                data: kategoriData.data || [30, 25, 15, 30],
-                backgroundColor: [
-                    '#28a745',
-                    '#007bff',
-                    '#dc3545',
-                    '#ffc107'
-                ]
+                fill: true,
+                tension: 0.4
             }]
         },
         options: {
             responsive: true,
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString('id-ID');
+                        }
+                    }
                 }
             }
         }
     });
+});
 </script>
 @endpush
+@endsection
