@@ -1,255 +1,249 @@
 @extends('layouts.app')
 
-@section('title', 'Detail Penarikan Poin')
+@section('title', 'Detail Penarikan Poin Admin')
 
-@section('content')
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center">
-            <h2 class="mb-0">Detail Penarikan Poin</h2>
-            <div>
-                <a href="{{ route('admin.penarikan.index') }}" class="btn btn-netra-outline me-2">
-                    <i class="bi bi-arrow-left me-2"></i>Kembali
-                </a>
-                @if($penarikan->status == 'pending')
-                <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#approveModal">
-                    <i class="bi bi-check-circle me-2"></i>Approve
-                </button>
-                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
-                    <i class="bi bi-x-circle me-2"></i>Reject
-                </button>
-                @elseif($penarikan->status == 'approved')
-                <form action="{{ route('admin.penarikan.complete', $penarikan->id) }}" method="POST" class="d-inline">
-                    @csrf
-                    <button type="submit" class="btn btn-success" onclick="return confirm('Tandai sebagai selesai? Dana sudah ditransfer?')">
-                        <i class="bi bi-check2-all me-2"></i>Mark as Completed
-                    </button>
-                </form>
-                @endif
-            </div>
-        </div>
-        <p class="text-muted">ID: #{{ $penarikan->id }}</p>
+@section('header')
+<div class="d-flex justify-content-between align-items-center">
+    <h1 class="h3 mb-0">
+        <i class="fas fa-file-invoice-dollar"></i> Detail Penarikan Poin
+    </h1>
+    <div>
+        <a href="{{ route('admin.penarikan.index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Kembali
+        </a>
     </div>
 </div>
+@endsection
 
+@section('content')
 <div class="row">
-    <div class="col-lg-8">
-        <!-- Status Card -->
+    <div class="col-md-8">
         <div class="card mb-4">
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col-md-8">
-                        <h6 class="text-muted mb-2">Status</h6>
-                        @if($penarikan->status == 'pending')
-                        <h4 class="text-warning">
-                            <i class="bi bi-clock-history me-2"></i>Pending - Menunggu Approval
-                        </h4>
-                        <p class="text-muted mb-0">Pengajuan ini menunggu persetujuan Anda.</p>
-                        @elseif($penarikan->status == 'approved')
-                        <h4 class="text-info">
-                            <i class="bi bi-check-circle me-2"></i>Approved - Disetujui
-                        </h4>
-                        <p class="text-muted mb-0">Penarikan telah disetujui, menunggu transfer dana.</p>
-                        @elseif($penarikan->status == 'completed')
-                        <h4 class="text-success">
-                            <i class="bi bi-check2-circle me-2"></i>Completed - Selesai
-                        </h4>
-                        <p class="text-muted mb-0">Dana telah ditransfer ke warga.</p>
-                        @else
-                        <h4 class="text-danger">
-                            <i class="bi bi-x-circle me-2"></i>Rejected - Ditolak
-                        </h4>
-                        <p class="text-muted mb-0">Pengajuan telah ditolak.</p>
-                        @endif
-                    </div>
-                    <div class="col-md-4 text-end">
-                        <h6 class="text-muted mb-2">Jumlah</h6>
-                        <h2 class="text-netra">{{ number_format($penarikan->jumlah_poin, 0, ',', '.') }} Poin</h2>
-                        <h4>Rp {{ number_format($penarikan->jumlah_rupiah, 0, ',', '.') }}</h4>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Detail Card -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h6 class="mb-0">Detail Pengajuan</h6>
+            <div class="card-header bg-netra text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i> Informasi Penarikan
+                </h5>
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6">
-                        <table class="table table-borderless">
-                            <tr>
-                                <th width="40%">ID Penarikan</th>
-                                <td>#{{ $penarikan->id }}</td>
-                            </tr>
-                            <tr>
-                                <th>Tanggal Pengajuan</th>
-                                <td>{{ $penarikan->tanggal_pengajuan->format('d F Y H:i') }}</td>
-                            </tr>
-                            <tr>
-                                <th>Tanggal Approval</th>
-                                <td>
-                                    @if($penarikan->tanggal_approval)
-                                    {{ $penarikan->tanggal_approval->format('d F Y H:i') }}
-                                    @else
-                                    <span class="text-muted">Belum di-approve</span>
-                                    @endif
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Alasan Penarikan</th>
-                                <td>{{ $penarikan->alasan_penarikan }}</td>
-                            </tr>
-                        </table>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">ID Penarikan</label>
+                        <p class="mb-0">
+                            <strong>#{{ str_pad($penarikan->id, 6, '0', STR_PAD_LEFT) }}</strong>
+                        </p>
                     </div>
-                    <div class="col-md-6">
-                        <table class="table table-borderless">
-                            @if($penarikan->catatan_admin)
-                            <tr>
-                                <th width="40%">Catatan Admin</th>
-                                <td>{{ $penarikan->catatan_admin }}</td>
-                            </tr>
-                            @endif
-                            @if($penarikan->admin)
-                            <tr>
-                                <th>Admin Penyetuju</th>
-                                <td>{{ $penarikan->admin->name }}</td>
-                            </tr>
-                            @endif
-                            <tr>
-                                <th>Konversi</th>
-                                <td>100 poin = Rp 10.000</td>
-                            </tr>
-                        </table>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Tanggal Pengajuan</label>
+                        <p class="mb-0">
+                            <strong>{{ $penarikan->created_at->format('d F Y, H:i') }}</strong>
+                        </p>
                     </div>
                 </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Status</label>
+                        <p class="mb-0">
+                            @php
+                                $statusColors = [
+                                    'pending' => 'warning',
+                                    'approved' => 'info',
+                                    'completed' => 'success',
+                                    'rejected' => 'danger'
+                                ];
+                                $statusLabels = [
+                                    'pending' => 'Menunggu Approval',
+                                    'approved' => 'Disetujui',
+                                    'completed' => 'Selesai',
+                                    'rejected' => 'Ditolak'
+                                ];
+                            @endphp
+                            <span class="badge bg-{{ $statusColors[$penarikan->status] ?? 'secondary' }} p-2">
+                                {{ $statusLabels[$penarikan->status] ?? $penarikan->status }}
+                            </span>
+                        </p>
+                    </div>
+                    @if($penarikan->tanggal_approval)
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Tanggal Approval</label>
+                        <p class="mb-0">
+                            <strong>{{ $penarikan->tanggal_approval->format('d F Y, H:i') }}</strong>
+                        </p>
+                    </div>
+                    @endif
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Jumlah Poin</label>
+                        <h3 class="text-netra mb-0">
+                            {{ number_format($penarikan->jumlah_poin, 0, ',', '.') }} pts
+                        </h3>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Nilai Rupiah</label>
+                        <h3 class="text-success mb-0">
+                            Rp {{ number_format($penarikan->jumlah_rupiah, 0, ',', '.') }}
+                        </h3>
+                        <small class="text-muted">Kurs: 100 poin = Rp 10.000</small>
+                    </div>
+                </div>
+
+                @if($penarikan->catatan_admin)
+                <div class="alert alert-info">
+                    <h6 class="alert-heading">
+                        <i class="fas fa-sticky-note me-2"></i> Catatan Admin
+                    </h6>
+                    <p class="mb-0">{{ $penarikan->catatan_admin }}</p>
+                </div>
+                @endif
             </div>
         </div>
-        
-        <!-- Timeline -->
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0">Timeline Proses</h6>
+
+        <!-- Warga Information -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-user me-2"></i> Informasi Warga
+                </h5>
             </div>
             <div class="card-body">
-                <div class="timeline">
-                    <div class="timeline-item {{ $penarikan->status != 'pending' ? 'completed' : '' }}">
-                        <div class="timeline-marker bg-success"></div>
-                        <div class="timeline-content">
-                            <h6>Pengajuan Dikirim</h6>
-                            <p class="text-muted mb-0">{{ $penarikan->tanggal_pengajuan->format('d F Y H:i') }}</p>
-                            <p class="mb-0">Warga: {{ $penarikan->warga->name }}</p>
-                        </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Nama Warga</label>
+                        <p class="mb-0">
+                            <strong>{{ $penarikan->warga->name }}</strong>
+                        </p>
                     </div>
-                    
-                    <div class="timeline-item {{ in_array($penarikan->status, ['approved', 'completed', 'rejected']) ? 'completed' : '' }}">
-                        <div class="timeline-marker bg-info"></div>
-                        <div class="timeline-content">
-                            <h6>Review Admin</h6>
-                            <p class="text-muted mb-0">
-                                @if($penarikan->tanggal_approval)
-                                {{ $penarikan->tanggal_approval->format('d F Y H:i') }}
-                                @if($penarikan->admin)
-                                <br>Oleh: {{ $penarikan->admin->name }}
-                                @endif
-                                @else
-                                Menunggu review
-                                @endif
-                            </p>
-                        </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Email</label>
+                        <p class="mb-0">
+                            <strong>{{ $penarikan->warga->email }}</strong>
+                        </p>
                     </div>
-                    
-                    <div class="timeline-item {{ in_array($penarikan->status, ['completed']) ? 'completed' : ($penarikan->status == 'rejected' ? 'cancelled' : '') }}">
-                        <div class="timeline-marker {{ $penarikan->status == 'completed' ? 'bg-success' : ($penarikan->status == 'rejected' ? 'bg-danger' : 'bg-secondary') }}"></div>
-                        <div class="timeline-content">
-                            <h6>
-                                @if($penarikan->status == 'completed')
-                                Dana Ditransfer
-                                @elseif($penarikan->status == 'rejected')
-                                Penarikan Ditolak
-                                @else
-                                Transfer Dana
-                                @endif
-                            </h6>
-                            <p class="text-muted mb-0">
-                                @if($penarikan->status == 'completed')
-                                Dana telah dikirim ke rekening warga
-                                @elseif($penarikan->status == 'rejected')
-                                Pengajuan tidak disetujui
-                                @else
-                                Menunggu proses transfer
-                                @endif
-                            </p>
-                        </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Total Poin Saat Ini</label>
+                        <p class="mb-0">
+                            <strong>{{ number_format($penarikan->warga->total_points, 0, ',', '.') }} pts</strong>
+                        </p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Total Penarikan</label>
+                        <p class="mb-0">
+                            <strong>{{ App\Models\PenarikanPoin::where('warga_id', $penarikan->warga_id)->count() }} kali</strong>
+                        </p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Sidebar -->
-    <div class="col-lg-4">
-        <!-- Info Warga -->
+
+    <div class="col-md-4">
+        <!-- Admin Actions -->
         <div class="card mb-4">
-            <div class="card-header">
-                <h6 class="mb-0">Informasi Warga</h6>
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cogs me-2"></i> Aksi Admin
+                </h5>
             </div>
             <div class="card-body">
-                <div class="text-center mb-3">
-                    <div class="avatar-lg mx-auto mb-3">
-                        <div style="width: 80px; height: 80px; background-color: #2E8B57; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 32px; font-weight: bold;">
-                            {{ substr($penarikan->warga->name, 0, 1) }}
-                        </div>
+                @if($penarikan->status == 'pending')
+                    <div class="d-grid gap-2">
+                        <button type="button" 
+                                class="btn btn-success mb-2" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#approveModal">
+                            <i class="fas fa-check me-2"></i> Setujui Penarikan
+                        </button>
+                        <button type="button" 
+                                class="btn btn-danger" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#rejectModal">
+                            <i class="fas fa-times me-2"></i> Tolak Penarikan
+                        </button>
                     </div>
-                    <h5>{{ $penarikan->warga->name }}</h5>
-                    <p class="text-muted mb-0">{{ $penarikan->warga->email }}</p>
-                </div>
-                
-                <table class="table table-borderless">
-                    <tr>
-                        <th width="40%">Telepon</th>
-                        <td>{{ $penarikan->warga->phone ?: '-' }}</td>
-                    </tr>
-                    <tr>
-                        <th>Alamat</th>
-                        <td>{{ $penarikan->warga->address ?: '-' }}</td>
-                    </tr>
-                    <tr>
-                        <th>Total Poin</th>
-                        <td>{{ number_format($penarikan->warga->total_points, 0, ',', '.') }}</td>
-                    </tr>
-                    <tr>
-                        <th>Total Transaksi</th>
-                        <td>{{ $penarikan->warga->transaksiSebagaiWarga->count() }}</td>
-                    </tr>
-                </table>
-                
-                <div class="d-grid gap-2">
-                    <a href="mailto:{{ $penarikan->warga->email }}" class="btn btn-outline-netra">
-                        <i class="bi bi-envelope me-2"></i>Kirim Email
-                    </a>
-                    <a href="#" class="btn btn-outline-secondary">
-                        <i class="bi bi-telephone me-2"></i>Hubungi
-                    </a>
-                </div>
+                @endif
+
+                @if($penarikan->status == 'approved')
+                    <div class="d-grid gap-2">
+                        <button type="button" 
+                                class="btn btn-success" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#completeModal">
+                            <i class="fas fa-money-bill-wave me-2"></i> Tandai Selesai
+                        </button>
+                    </div>
+                @endif
+
+                @if($penarikan->status == 'completed')
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Penarikan telah selesai dan dana telah ditransfer.
+                    </div>
+                @endif
+
+                @if($penarikan->status == 'rejected')
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times-circle me-2"></i>
+                        Penarikan telah ditolak.
+                    </div>
+                @endif
             </div>
         </div>
-        
-        <!-- Quick Actions -->
+
+        <!-- Status Timeline -->
         <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0">Aksi Cepat</h6>
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-history me-2"></i> Timeline Status
+                </h5>
             </div>
             <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{{ route('admin.penarikan.index') }}" class="btn btn-netra-outline">
-                        <i class="bi bi-list-ul me-2"></i>Semua Penarikan
-                    </a>
-                    <a href="{{ route('admin.dashboard') }}" class="btn btn-netra-outline">
-                        <i class="bi bi-speedometer2 me-2"></i>Dashboard
-                    </a>
+                <div class="timeline">
+                    <div class="timeline-item active">
+                        <div class="timeline-icon bg-primary">
+                            <i class="fas fa-paper-plane"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <h6>Diajukan</h6>
+                            <p class="text-muted small mb-0">
+                                {{ $penarikan->created_at->format('d F Y, H:i') }}
+                            </p>
+                        </div>
+                    </div>
+
+                    @if($penarikan->status == 'approved' || $penarikan->status == 'completed' || $penarikan->status == 'rejected')
+                        <div class="timeline-item active">
+                            <div class="timeline-icon bg-info">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6>Diproses Admin</h6>
+                                <p class="text-muted small mb-0">
+                                    {{ $penarikan->tanggal_approval->format('d F Y, H:i') }}
+                                </p>
+                                <p class="mt-1 mb-0">
+                                    oleh {{ $penarikan->admin->name ?? 'Admin' }}
+                                </p>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if($penarikan->status == 'completed')
+                        <div class="timeline-item active">
+                            <div class="timeline-icon bg-success">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6>Dana Ditransfer</h6>
+                                <p class="text-muted small mb-0">
+                                    Selesai
+                                </p>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -265,20 +259,19 @@
             <form action="{{ route('admin.penarikan.approve', $penarikan->id) }}" method="POST">
                 @csrf
                 <div class="modal-header">
-                    <h5 class="modal-title">Approve Penarikan</h5>
+                    <h5 class="modal-title">Setujui Penarikan</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Approve penarikan dari <strong>{{ $penarikan->warga->name }}</strong>?</p>
-                    <p><strong>{{ number_format($penarikan->jumlah_poin, 0, ',', '.') }} poin</strong> (Rp {{ number_format($penarikan->jumlah_rupiah, 0, ',', '.') }})</p>
+                    <p>Setujui penarikan poin dari <strong>{{ $penarikan->warga->name }}</strong>?</p>
                     <div class="mb-3">
-                        <label class="form-label">Catatan (Opsional)</label>
-                        <textarea name="catatan_admin" class="form-control" rows="3" placeholder="Catatan untuk warga..."></textarea>
+                        <label for="catatan_admin" class="form-label">Catatan (opsional)</label>
+                        <textarea class="form-control" id="catatan_admin" name="catatan_admin" rows="3" placeholder="Berikan catatan jika diperlukan"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success">Approve</button>
+                    <button type="submit" class="btn btn-success">Setujui</button>
                 </div>
             </form>
         </div>
@@ -292,20 +285,48 @@
             <form action="{{ route('admin.penarikan.reject', $penarikan->id) }}" method="POST">
                 @csrf
                 <div class="modal-header">
-                    <h5 class="modal-title">Reject Penarikan</h5>
+                    <h5 class="modal-title">Tolak Penarikan</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Tolak penarikan dari <strong>{{ $penarikan->warga->name }}</strong>?</p>
-                    <p><strong>{{ number_format($penarikan->jumlah_poin, 0, ',', '.') }} poin</strong> (Rp {{ number_format($penarikan->jumlah_rupiah, 0, ',', '.') }})</p>
+                    <p>Tolak penarikan poin dari <strong>{{ $penarikan->warga->name }}</strong>?</p>
                     <div class="mb-3">
-                        <label class="form-label">Alasan Penolakan <span class="text-danger">*</span></label>
-                        <textarea name="catatan_admin" class="form-control" rows="3" placeholder="Berikan alasan penolakan..." required></textarea>
+                        <label for="catatan_admin" class="form-label">Alasan Penolakan *</label>
+                        <textarea class="form-control" id="catatan_admin" name="catatan_admin" rows="3" placeholder="Harap berikan alasan penolakan" required></textarea>
+                        <div class="form-text">Poin akan dikembalikan ke warga setelah ditolak.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-danger">Reject</button>
+                    <button type="submit" class="btn btn-danger">Tolak</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+
+@if($penarikan->status == 'approved')
+<!-- Complete Modal -->
+<div class="modal fade" id="completeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('admin.penarikan.complete', $penarikan->id) }}" method="POST">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">Tandai Sebagai Selesai</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tandai penarikan dari <strong>{{ $penarikan->warga->name }}</strong> sebagai selesai?</p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Pastikan dana telah ditransfer ke rekening warga sebelum menandai sebagai selesai.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success">Tandai Selesai</button>
                 </div>
             </form>
         </div>
@@ -316,50 +337,44 @@
 <style>
 .timeline {
     position: relative;
-    padding-left: 30px;
+    padding-left: 50px;
 }
-
 .timeline::before {
     content: '';
     position: absolute;
-    left: 15px;
+    left: 18px;
     top: 0;
     bottom: 0;
     width: 2px;
-    background-color: #e9ecef;
+    background-color: #dee2e6;
 }
-
 .timeline-item {
     position: relative;
     margin-bottom: 30px;
 }
-
-.timeline-marker {
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
+.timeline-item.active .timeline-icon {
+    background-color: var(--netra-primary) !important;
+}
+.timeline-icon {
     position: absolute;
-    left: -30px;
-    top: 0;
-    width: 16px;
-    height: 16px;
+    left: -50px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    border: 3px solid #fff;
-    box-shadow: 0 0 0 2px #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    background-color: #dee2e6;
 }
-
-.timeline-item.completed .timeline-marker {
-    box-shadow: 0 0 0 2px var(--primary-color);
-}
-
 .timeline-content {
-    padding-left: 20px;
-}
-
-.timeline-item.cancelled .timeline-marker {
-    background-color: #dc3545 !important;
-}
-
-.avatar-lg {
-    width: 80px;
-    height: 80px;
+    background: white;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
 }
 </style>
 @endsection

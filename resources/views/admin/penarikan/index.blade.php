@@ -1,257 +1,316 @@
 @extends('layouts.app')
 
-@section('title', 'Management Penarikan Poin')
+@section('title', 'Manajemen Penarikan Poin')
+
+@section('header')
+<div class="d-flex justify-content-between align-items-center">
+    <h1 class="h3 mb-0">
+        <i class="fas fa-hand-holding-usd"></i> Manajemen Penarikan Poin
+    </h1>
+    <div>
+        <a href="{{ route('admin.dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Kembali
+        </a>
+    </div>
+</div>
+@endsection
 
 @section('content')
 <div class="row mb-4">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center">
-            <h2 class="mb-0">Management Penarikan Poin</h2>
-            <a href="{{ route('admin.dashboard') }}" class="btn btn-netra-outline">
-                <i class="bi bi-arrow-left me-2"></i>Kembali
-            </a>
+    <!-- Stats Cards -->
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Total Penarikan</h6>
+                        <h3 class="mb-0">{{ App\Models\PenarikanPoin::count() }}</h3>
+                    </div>
+                    <i class="fas fa-list fa-2x opacity-50"></i>
+                </div>
+            </div>
         </div>
-        <p class="text-muted">Approve atau tolak pengajuan penarikan poin dari warga</p>
     </div>
-</div>
-
-<!-- Filter -->
-<div class="card mb-4">
-    <div class="card-body">
-        <form method="GET" class="row g-3">
-            <div class="col-md-3">
-                <label class="form-label">Status</label>
-                <select name="status" class="form-select">
-                    <option value="">Semua Status</option>
-                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                    <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
-                    <option value="completed" {{ request('completed') == 'completed' ? 'selected' : '' }}>Completed</option>
-                    <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Tanggal Mulai</label>
-                <input type="date" name="start_date" class="form-control" value="{{ request('start_date') }}">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Tanggal Akhir</label>
-                <input type="date" name="end_date" class="form-control" value="{{ request('end_date') }}">
-            </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <button type="submit" class="btn btn-netra me-2">
-                    <i class="bi bi-filter me-2"></i>Filter
-                </button>
-                <a href="{{ route('admin.penarikan.index') }}" class="btn btn-outline-secondary">
-                    Reset
-                </a>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Stats -->
-<div class="row mb-4">
     <div class="col-md-3">
         <div class="card bg-warning text-white">
             <div class="card-body">
-                <h6 class="card-title">Pending</h6>
-                <h3>{{ $penarikan->where('status', 'pending')->count() }}</h3>
-                <small>Menunggu approval</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <h6 class="card-title">Approved</h6>
-                <h3>{{ $penarikan->where('status', 'approved')->count() }}</h3>
-                <small>Disetujui</small>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Menunggu</h6>
+                        <h3 class="mb-0">{{ App\Models\PenarikanPoin::where('status', 'pending')->count() }}</h3>
+                    </div>
+                    <i class="fas fa-clock fa-2x opacity-50"></i>
+                </div>
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="card bg-success text-white">
             <div class="card-body">
-                <h6 class="card-title">Completed</h6>
-                <h3>{{ $penarikan->where('status', 'completed')->count() }}</h3>
-                <small>Selesai</small>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Selesai</h6>
+                        <h3 class="mb-0">{{ App\Models\PenarikanPoin::where('status', 'completed')->count() }}</h3>
+                    </div>
+                    <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                </div>
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="card bg-danger text-white">
             <div class="card-body">
-                <h6 class="card-title">Rejected</h6>
-                <h3>{{ $penarikan->where('status', 'rejected')->count() }}</h3>
-                <small>Ditolak</small>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Ditolak</h6>
+                        <h3 class="mb-0">{{ App\Models\PenarikanPoin::where('status', 'rejected')->count() }}</h3>
+                    </div>
+                    <i class="fas fa-times-circle fa-2x opacity-50"></i>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Table -->
+<!-- Filter Tabs -->
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link {{ request()->is('admin/penarikan') && !request()->has('status') ? 'active' : '' }}" 
+           href="{{ route('admin.penarikan.index') }}">
+            Semua
+            <span class="badge bg-secondary">{{ App\Models\PenarikanPoin::count() }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {{ request()->is('admin/penarikan/pending') || request('status') == 'pending' ? 'active' : '' }}" 
+           href="{{ route('admin.penarikan.pending') }}">
+            Menunggu
+            <span class="badge bg-warning">{{ App\Models\PenarikanPoin::where('status', 'pending')->count() }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {{ request()->is('admin/penarikan/approved') || request('status') == 'approved' ? 'active' : '' }}" 
+           href="{{ route('admin.penarikan.approved') }}">
+            Disetujui
+            <span class="badge bg-info">{{ App\Models\PenarikanPoin::where('status', 'approved')->count() }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {{ request()->is('admin/penarikan/completed') || request('status') == 'completed' ? 'active' : '' }}" 
+           href="{{ route('admin.penarikan.completed') }}">
+            Selesai
+            <span class="badge bg-success">{{ App\Models\PenarikanPoin::where('status', 'completed')->count() }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {{ request()->is('admin/penarikan/rejected') || request('status') == 'rejected' ? 'active' : '' }}" 
+           href="{{ route('admin.penarikan.rejected') }}">
+            Ditolak
+            <span class="badge bg-danger">{{ App\Models\PenarikanPoin::where('status', 'rejected')->count() }}</span>
+        </a>
+    </li>
+</ul>
+
 <div class="card">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Warga</th>
-                        <th>Jumlah Poin</th>
-                        <th>Nilai Rupiah</th>
-                        <th>Status</th>
-                        <th>Tanggal Pengajuan</th>
-                        <th>Admin</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($penarikan as $item)
-                    <tr>
-                        <td>#{{ $item->id }}</td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <div class="avatar-sm me-2">
-                                    <div style="width: 32px; height: 32px; background-color: #2E8B57; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
-                                        {{ substr($item->warga->name, 0, 1) }}
-                                    </div>
+    <div class="card-body">
+        @if($penarikan->isEmpty())
+            <div class="text-center py-5">
+                <i class="fas fa-money-bill-wave fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Belum ada penarikan poin</h5>
+            </div>
+        @else
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Warga</th>
+                            <th>Jumlah Poin</th>
+                            <th>Nilai Rupiah</th>
+                            <th>Tanggal</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($penarikan as $item)
+                        <tr>
+                            <td>#{{ str_pad($item->id, 6, '0', STR_PAD_LEFT) }}</td>
+                            <td>
+                                <strong>{{ $item->warga->name }}</strong>
+                                <small class="d-block text-muted">{{ $item->warga->email }}</small>
+                            </td>
+                            <td>
+                                <strong>{{ number_format($item->jumlah_poin, 0, ',', '.') }}</strong>
+                                <small class="text-muted d-block">poin</small>
+                            </td>
+                            <td>
+                                <strong class="text-success">Rp {{ number_format($item->jumlah_rupiah, 0, ',', '.') }}</strong>
+                            </td>
+                            <td>
+                                <small class="text-muted d-block">{{ $item->created_at->format('d/m/Y') }}</small>
+                                <small class="text-muted">{{ $item->created_at->format('H:i') }}</small>
+                            </td>
+                            <td>
+                                @php
+                                    $statusColors = [
+                                        'pending' => 'warning',
+                                        'approved' => 'info',
+                                        'completed' => 'success',
+                                        'rejected' => 'danger'
+                                    ];
+                                    $statusLabels = [
+                                        'pending' => 'Menunggu',
+                                        'approved' => 'Disetujui',
+                                        'completed' => 'Selesai',
+                                        'rejected' => 'Ditolak'
+                                    ];
+                                @endphp
+                                <span class="badge bg-{{ $statusColors[$item->status] ?? 'secondary' }}">
+                                    {{ $statusLabels[$item->status] ?? $item->status }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ route('admin.penarikan.show', $item->id) }}" 
+                                       class="btn btn-outline-primary" 
+                                       title="Detail">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    @if($item->status == 'pending')
+                                        <button type="button" 
+                                                class="btn btn-outline-success" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#approveModal{{ $item->id }}"
+                                                title="Setujui">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" 
+                                                class="btn btn-outline-danger" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#rejectModal{{ $item->id }}"
+                                                title="Tolak">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    @endif
+                                    @if($item->status == 'approved')
+                                        <button type="button" 
+                                                class="btn btn-outline-success" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#completeModal{{ $item->id }}"
+                                                title="Tandai Selesai">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </button>
+                                    @endif
                                 </div>
-                                <div>
-                                    <h6 class="mb-0">{{ $item->warga->name }}</h6>
-                                    <small class="text-muted">{{ $item->warga->email }}</small>
-                                </div>
-                            </div>
-                        </td>
-                        <td>{{ number_format($item->jumlah_poin, 0, ',', '.') }} poin</td>
-                        <td>Rp {{ number_format($item->jumlah_rupiah, 0, ',', '.') }}</td>
-                        <td>
-                            @if($item->status == 'pending')
-                            <span class="badge bg-warning">Pending</span>
-                            @elseif($item->status == 'approved')
-                            <span class="badge bg-info">Approved</span>
-                            @elseif($item->status == 'completed')
-                            <span class="badge bg-success">Completed</span>
-                            @else
-                            <span class="badge bg-danger">Rejected</span>
-                            @endif
-                        </td>
-                        <td>{{ $item->tanggal_pengajuan->format('d/m/Y H:i') }}</td>
-                        <td>
-                            @if($item->admin)
-                            <span class="badge bg-secondary">{{ $item->admin->name }}</span>
-                            @else
-                            <span class="text-muted">-</span>
-                            @endif
-                        </td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <a href="{{ route('admin.penarikan.show', $item->id) }}" 
-                                   class="btn btn-outline-primary" title="Detail">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                                @if($item->status == 'pending')
-                                <!-- Modal Trigger for Approve -->
-                                <button type="button" class="btn btn-outline-success" 
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#approveModal{{ $item->id }}"
-                                        title="Approve">
-                                    <i class="bi bi-check-circle"></i>
-                                </button>
-                                <!-- Modal Trigger for Reject -->
-                                <button type="button" class="btn btn-outline-danger" 
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#rejectModal{{ $item->id }}"
-                                        title="Reject">
-                                    <i class="bi bi-x-circle"></i>
-                                </button>
-                                @endif
-                                @if($item->status == 'approved')
-                                <form action="{{ route('admin.penarikan.complete', $item->id) }}" 
-                                      method="POST" class="d-inline">
-                                    @csrf
-                                    <button type="submit" class="btn btn-outline-success" 
-                                            onclick="return confirm('Tandai sebagai selesai? Dana sudah ditransfer?')"
-                                            title="Complete">
-                                        <i class="bi bi-check2-all"></i>
-                                    </button>
-                                </form>
-                                @endif
-                            </div>
-                            
-                            <!-- Approve Modal -->
-                            <div class="modal fade" id="approveModal{{ $item->id }}" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <form action="{{ route('admin.penarikan.approve', $item->id) }}" method="POST">
-                                            @csrf
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Approve Penarikan</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </td>
+                        </tr>
+
+                        <!-- Approve Modal -->
+                        @if($item->status == 'pending')
+                        <div class="modal fade" id="approveModal{{ $item->id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form action="{{ route('admin.penarikan.approve', $item->id) }}" method="POST">
+                                        @csrf
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Setujui Penarikan</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Setujui penarikan poin dari <strong>{{ $item->warga->name }}</strong>?</p>
+                                            <div class="mb-3">
+                                                <label for="catatan_admin" class="form-label">Catatan (opsional)</label>
+                                                <textarea class="form-control" id="catatan_admin" name="catatan_admin" rows="3" placeholder="Berikan catatan jika diperlukan"></textarea>
                                             </div>
-                                            <div class="modal-body">
-                                                <p>Approve penarikan dari <strong>{{ $item->warga->name }}</strong>?</p>
-                                                <p><strong>{{ number_format($item->jumlah_poin, 0, ',', '.') }} poin</strong> (Rp {{ number_format($item->jumlah_rupiah, 0, ',', '.') }})</p>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Catatan (Opsional)</label>
-                                                    <textarea name="catatan_admin" class="form-control" rows="3" placeholder="Catatan untuk warga..."></textarea>
-                                                </div>
+                                            <div class="alert alert-info">
+                                                <p class="mb-1"><strong>Detail Penarikan:</strong></p>
+                                                <p class="mb-1">Jumlah Poin: {{ number_format($item->jumlah_poin) }}</p>
+                                                <p class="mb-0">Nilai Rupiah: Rp {{ number_format($item->jumlah_rupiah) }}</p>
                                             </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                                <button type="submit" class="btn btn-success">Approve</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Reject Modal -->
-                            <div class="modal fade" id="rejectModal{{ $item->id }}" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <form action="{{ route('admin.penarikan.reject', $item->id) }}" method="POST">
-                                            @csrf
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Reject Penarikan</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <p>Tolak penarikan dari <strong>{{ $item->warga->name }}</strong>?</p>
-                                                <p><strong>{{ number_format($item->jumlah_poin, 0, ',', '.') }} poin</strong> (Rp {{ number_format($item->jumlah_rupiah, 0, ',', '.') }})</p>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Alasan Penolakan <span class="text-danger">*</span></label>
-                                                    <textarea name="catatan_admin" class="form-control" rows="3" placeholder="Berikan alasan penolakan..." required></textarea>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                                <button type="submit" class="btn btn-danger">Reject</button>
-                                            </div>
-                                        </form>
-                                    </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                            <button type="submit" class="btn btn-success">Setujui</button>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="8" class="text-center py-4 text-muted">
-                            <i class="bi bi-cash-coin display-4 d-block mb-2"></i>
-                            Belum ada pengajuan penarikan
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                        </div>
+                        @endif
+
+                        <!-- Reject Modal -->
+                        @if($item->status == 'pending')
+                        <div class="modal fade" id="rejectModal{{ $item->id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form action="{{ route('admin.penarikan.reject', $item->id) }}" method="POST">
+                                        @csrf
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Tolak Penarikan</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Tolak penarikan poin dari <strong>{{ $item->warga->name }}</strong>?</p>
+                                            <div class="mb-3">
+                                                <label for="catatan_admin" class="form-label">Alasan Penolakan *</label>
+                                                <textarea class="form-control" id="catatan_admin" name="catatan_admin" rows="3" placeholder="Harap berikan alasan penolakan" required></textarea>
+                                                <div class="form-text">Poin akan dikembalikan ke warga setelah ditolak.</div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                            <button type="submit" class="btn btn-danger">Tolak</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
+                        <!-- Complete Modal -->
+                        @if($item->status == 'approved')
+                        <div class="modal fade" id="completeModal{{ $item->id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form action="{{ route('admin.penarikan.complete', $item->id) }}" method="POST">
+                                        @csrf
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Tandai Sebagai Selesai</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Tandai penarikan dari <strong>{{ $item->warga->name }}</strong> sebagai selesai?</p>
+                                            <div class="alert alert-warning">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                Pastikan dana telah ditransfer ke rekening warga sebelum menandai sebagai selesai.
+                                            </div>
+                                            <div class="alert alert-info">
+                                                <p class="mb-1"><strong>Detail Transfer:</strong></p>
+                                                <p class="mb-1">Jumlah: Rp {{ number_format($item->jumlah_rupiah) }}</p>
+                                                <p class="mb-0">Penerima: {{ $item->warga->name }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                            <button type="submit" class="btn btn-success">Tandai Selesai</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="d-flex justify-content-center mt-4">
+                {{ $penarikan->links() }}
+            </div>
+        @endif
     </div>
-    
-    <!-- Pagination -->
-    @if($penarikan->hasPages())
-    <div class="card-footer">
-        {{ $penarikan->links() }}
-    </div>
-    @endif
 </div>
 @endsection

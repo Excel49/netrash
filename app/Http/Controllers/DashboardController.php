@@ -10,6 +10,7 @@ use App\Models\Notifikasi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -29,7 +30,7 @@ class DashboardController extends Controller
         return redirect('/login');
     }
     
-    private function adminDashboard()
+    public function adminDashboard()
     {
         // Total Statistics
         $totalUsers = User::count();
@@ -85,20 +86,25 @@ class DashboardController extends Controller
         ));
     }
     
-    private function petugasDashboard()
+    public function petugasDashboard()
     {
         $petugasId = Auth::id();
+        $today = Carbon::today();
         
-        // Today's Statistics
+        // Hari ini
         $transaksiHariIni = Transaksi::where('petugas_id', $petugasId)
-            ->whereDate('created_at', today())
+            ->whereDate('created_at', $today)
             ->count();
             
         $beratHariIni = Transaksi::where('petugas_id', $petugasId)
-            ->whereDate('created_at', today())
+            ->whereDate('created_at', $today)
             ->sum('total_berat');
+            
+        $poinHariIni = Transaksi::where('petugas_id', $petugasId)
+            ->whereDate('created_at', $today)
+            ->sum('total_poin');
         
-        // This Month's Statistics
+        // Bulan ini
         $transaksiBulanIni = Transaksi::where('petugas_id', $petugasId)
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
@@ -114,38 +120,96 @@ class DashboardController extends Controller
             ->whereYear('created_at', now()->year)
             ->sum('total_poin');
         
-        // Other Data
-        $totalWarga = User::where('role_id', 3)->count();
+        // Warga terlayani
+        $wargaTerlayani = User::where('role_id', 3)
+            ->whereHas('transaksiSebagaiWarga', function($query) use ($petugasId) {
+                $query->where('petugas_id', $petugasId);
+            })
+            ->count();
+            
+        $wargaHariIni = User::where('role_id', 3)
+            ->whereHas('transaksiSebagaiWarga', function($query) use ($petugasId, $today) {
+                $query->where('petugas_id', $petugasId)
+                      ->whereDate('created_at', $today);
+            })
+            ->count();
+        
+        // Rating petugas (jika ada fitur rating)
+        $averageRating = 4.5; // Default value
+        $totalRatings = 10; // Default value
+        
+        // Transaksi terbaru (5 hari terakhir)
+        $recentTransactions = Transaksi::with('warga')
+            ->where('petugas_id', $petugasId)
+            ->whereDate('created_at', '>=', $today->subDays(5))
+            ->orderBy('created_at', 'desc')
+            ->take(8)
+            ->get();
+        
+        // Warga teraktif (5 warga teratas)
+        $topWarga = User::where('role_id', 3)
+            ->whereHas('transaksiSebagaiWarga', function($query) use ($petugasId) {
+                $query->where('petugas_id', $petugasId);
+            })
+            ->withCount(['transaksiSebagaiWarga as total_transactions' => function($query) use ($petugasId) {
+                $query->where('petugas_id', $petugasId);
+            }])
+            ->orderBy('total_transactions', 'desc')
+            ->take(5)
+            ->get();
+        
+        // Data performa 7 hari terakhir untuk chart
+        $performanceData = [];
+        $performanceLabels = [];
+        $performanceWeight = [];
+        
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
+            $dayLabel = $date->translatedFormat('D'); // Singkatan hari (Sen, Sel, dst)
+            
+            $dayTransactions = Transaksi::where('petugas_id', $petugasId)
+                ->whereDate('created_at', $date)
+                ->count();
+                
+            $dayWeight = Transaksi::where('petugas_id', $petugasId)
+                ->whereDate('created_at', $date)
+                ->sum('total_berat');
+            
+            $performanceLabels[] = $dayLabel;
+            $performanceData[] = $dayTransactions;
+            $performanceWeight[] = $dayWeight;
+        }
+        
+        // Kategori sampah untuk referensi
         $kategoriSampah = KategoriSampah::where('status', true)->get();
         
-        // Today's Transactions
-        $transaksiToday = Transaksi::with('warga')
-            ->where('petugas_id', $petugasId)
-            ->whereDate('created_at', today())
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get();
+        // Data yang dibutuhkan view
+        $data = [
+            'todayTransactions' => $transaksiHariIni,
+            'todayWeight' => $beratHariIni,
+            'todayPoints' => $poinHariIni,
+            'uniqueWargaToday' => $wargaHariIni,
+            'totalPointsDistributed' => $totalPoinDiberikan,
+            'totalWargaServed' => $wargaTerlayani,
+            'averageRating' => $averageRating,
+            'totalRatings' => $totalRatings,
+            'recentTransactions' => $recentTransactions,
+            'topWarga' => $topWarga,
+            'performanceLabels' => $performanceLabels,
+            'performanceData' => $performanceData,
+            'performanceWeight' => $performanceWeight,
+            'transaksiHariIni' => $transaksiHariIni, // untuk kompatibilitas
+            'beratHariIni' => $beratHariIni, // untuk kompatibilitas
+            'transaksiBulanIni' => $transaksiBulanIni, // untuk kompatibilitas
+            'beratBulanIni' => $beratBulanIni, // untuk kompatibilitas
+            'totalPoinDiberikan' => $totalPoinDiberikan, // untuk kompatibilitas
+            'kategoriSampah' => $kategoriSampah, // untuk kompatibilitas
+        ];
         
-        // Top 5 Warga by Points
-        $topWarga = User::where('role_id', 3)
-            ->orderBy('total_points', 'desc')
-            ->take(5)
-            ->get();
-        
-        return view('petugas.dashboard', compact(
-            'transaksiHariIni',
-            'beratHariIni',
-            'transaksiBulanIni',
-            'beratBulanIni',
-            'totalPoinDiberikan',
-            'totalWarga',
-            'kategoriSampah',
-            'transaksiToday',
-            'topWarga'
-        ));
+        return view('petugas.dashboard', $data);
     }
     
-    private function wargaDashboard()
+    public function wargaDashboard()
     {
         $wargaId = Auth::id();
         $user = Auth::user();

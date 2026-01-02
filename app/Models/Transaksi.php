@@ -10,10 +10,18 @@ class Transaksi extends Model
     use HasFactory;
 
     protected $guarded = ['id'];
-    protected $table = 'transaksi';
+    
+    // **TAMBAHKAN INI:**
+    protected $table = 'transaksi'; // Nama tabel di database
     
     protected $casts = [
+        'tanggal_transaksi' => 'datetime',
         'tgl_transaksi' => 'datetime',
+        'total_berat' => 'decimal:2',
+        'total_harga' => 'decimal:2',
+        'total_poin' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
     
     public function warga()

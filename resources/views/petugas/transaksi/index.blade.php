@@ -59,7 +59,7 @@
         <div class="card bg-primary text-white">
             <div class="card-body">
                 <h6 class="card-title">Total Transaksi</h6>
-                <h3>{{ $transaksi->total() }}</h3>
+                <h3>{{ $transaksi->total() ?? 0 }}</h3>
             </div>
         </div>
     </div>
@@ -67,7 +67,7 @@
         <div class="card bg-success text-white">
             <div class="card-body">
                 <h6 class="card-title">Selesai</h6>
-                <h3>{{ $transaksi->where('status', 'completed')->count() }}</h3>
+                <h3>{{ $transaksi->where('status', 'completed')->count() ?? 0 }}</h3>
             </div>
         </div>
     </div>
@@ -75,7 +75,7 @@
         <div class="card bg-warning text-white">
             <div class="card-body">
                 <h6 class="card-title">Pending</h6>
-                <h3>{{ $transaksi->where('status', 'pending')->count() }}</h3>
+                <h3>{{ $transaksi->where('status', 'pending')->count() ?? 0 }}</h3>
             </div>
         </div>
     </div>
@@ -83,7 +83,7 @@
         <div class="card bg-danger text-white">
             <div class="card-body">
                 <h6 class="card-title">Dibatalkan</h6>
-                <h3>{{ $transaksi->where('status', 'cancelled')->count() }}</h3>
+                <h3>{{ $transaksi->where('status', 'cancelled')->count() ?? 0 }}</h3>
             </div>
         </div>
     </div>
@@ -109,16 +109,25 @@
                 <tbody>
                     @forelse($transaksi as $trx)
                     <tr>
-                        <td>{{ $trx->kode_transaksi }}</td>
-                        <td>{{ $trx->warga->name }}</td>
-                        <td>{{ $trx->tanggal_transaksi->format('d/m/Y H:i') }}</td>
-                        <td>{{ number_format($trx->total_berat, 1) }}</td>
-                        <td>Rp {{ number_format($trx->total_harga, 0, ',', '.') }}</td>
-                        <td>{{ number_format($trx->total_poin, 0, ',', '.') }}</td>
+                        <td>{{ $trx->kode_transaksi ?? 'N/A' }}</td>
+                        <td>{{ $trx->warga->name ?? 'N/A' }}</td>
                         <td>
-                            @if($trx->status == 'completed')
+                            @php
+                                // Cek jika tanggal_transaksi adalah objek Carbon atau string
+                                if ($trx->tanggal_transaksi instanceof \Carbon\Carbon) {
+                                    echo $trx->tanggal_transaksi->format('d/m/Y H:i');
+                                } else {
+                                    echo \Carbon\Carbon::parse($trx->tanggal_transaksi ?? $trx->created_at)->format('d/m/Y H:i');
+                                }
+                            @endphp
+                        </td>
+                        <td>{{ number_format($trx->total_berat ?? 0, 1) }}</td>
+                        <td>Rp {{ number_format($trx->total_harga ?? 0, 0, ',', '.') }}</td>
+                        <td>{{ number_format($trx->total_poin ?? 0, 0, ',', '.') }}</td>
+                        <td>
+                            @if(($trx->status ?? '') == 'completed')
                             <span class="badge bg-success">Selesai</span>
-                            @elseif($trx->status == 'pending')
+                            @elseif(($trx->status ?? '') == 'pending')
                             <span class="badge bg-warning">Pending</span>
                             @else
                             <span class="badge bg-danger">Dibatalkan</span>

@@ -18,15 +18,9 @@ class RoleMiddleware
         
         $user = Auth::user();
         
-        // Cek jika user tidak memiliki role
-        if (!$user->role) {
-            Auth::logout();
-            return redirect()->route('login')->withErrors(['error' => 'Role tidak ditemukan.']);
-        }
-        
-        // PERBAIKAN: gunakan field 'name' bukan 'nama_role'
-        // Cek jika role user ada dalam daftar roles yang diizinkan
-        if (in_array($user->role->name, $roles)) {
+        // Cek role berdasarkan role_id
+        // $roles berisi parameter seperti '1' untuk admin, '2' untuk petugas, '3' untuk warga
+        if (in_array((string) $user->role_id, $roles)) {
             return $next($request);
         }
         

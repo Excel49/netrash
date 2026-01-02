@@ -38,11 +38,17 @@
                             </tr>
                             <tr>
                                 <th>Tanggal</th>
-                                <td>{{ $transaksi->tanggal_transaksi->format('d/m/Y H:i') }}</td>
+                                <td>
+                                    @if($transaksi->tanggal_transaksi instanceof \Illuminate\Support\Carbon)
+                                        {{ $transaksi->tanggal_transaksi->format('d/m/Y H:i') }}
+                                    @else
+                                        {{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi ?? $transaksi->created_at)->format('d/m/Y H:i') }}
+                                    @endif
+                                </td>
                             </tr>
                             <tr>
                                 <th>Petugas</th>
-                                <td>{{ $transaksi->petugas->name }}</td>
+                                <td>{{ $transaksi->petugas->name ?? 'N/A' }}</td>
                             </tr>
                             <tr>
                                 <th>Status</th>
@@ -62,15 +68,15 @@
                         <table class="table table-borderless">
                             <tr>
                                 <th width="40%">Total Berat</th>
-                                <td>{{ number_format($transaksi->total_berat, 1) }} kg</td>
+                                <td>{{ number_format($transaksi->total_berat ?? 0, 1) }} kg</td>
                             </tr>
                             <tr>
                                 <th>Total Harga</th>
-                                <td>Rp {{ number_format($transaksi->total_harga, 0, ',', '.') }}</td>
+                                <td>Rp {{ number_format($transaksi->total_harga ?? 0, 0, ',', '.') }}</td>
                             </tr>
                             <tr>
                                 <th>Total Poin</th>
-                                <td>{{ number_format($transaksi->total_poin, 0, ',', '.') }} poin</td>
+                                <td>{{ number_format($transaksi->total_poin ?? 0, 0, ',', '.') }} poin</td>
                             </tr>
                             <tr>
                                 <th>Catatan</th>
@@ -102,23 +108,27 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($transaksi->detailTransaksi as $detail)
+                            @forelse($transaksi->detailTransaksi ?? [] as $detail)
                             <tr>
-                                <td>{{ $detail->kategori->nama_kategori }}</td>
-                                <td>{{ $detail->kategori->jenis_sampah }}</td>
-                                <td>{{ number_format($detail->berat, 1) }}</td>
-                                <td>Rp {{ number_format($detail->kategori->harga_per_kg, 0, ',', '.') }}</td>
-                                <td>{{ $detail->kategori->poin_per_kg }}</td>
-                                <td>Rp {{ number_format($detail->harga, 0, ',', '.') }}</td>
-                                <td>{{ number_format($detail->poin, 0, ',', '.') }}</td>
+                                <td>{{ $detail->kategori->nama_kategori ?? 'N/A' }}</td>
+                                <td>{{ $detail->kategori->jenis_sampah ?? 'N/A' }}</td>
+                                <td>{{ number_format($detail->berat ?? 0, 1) }}</td>
+                                <td>Rp {{ number_format($detail->kategori->harga_per_kg ?? 0, 0, ',', '.') }}</td>
+                                <td>{{ $detail->kategori->poin_per_kg ?? 0 }}</td>
+                                <td>Rp {{ number_format($detail->harga ?? 0, 0, ',', '.') }}</td>
+                                <td>{{ number_format($detail->poin ?? 0, 0, ',', '.') }}</td>
                             </tr>
-                            @endforeach
+                            @empty
+                            <tr>
+                                <td colspan="7" class="text-center py-3">Tidak ada detail transaksi</td>
+                            </tr>
+                            @endforelse
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
                                 <th colspan="5" class="text-end">Total:</th>
-                                <th>Rp {{ number_format($transaksi->total_harga, 0, ',', '.') }}</th>
-                                <th>{{ number_format($transaksi->total_poin, 0, ',', '.') }} poin</th>
+                                <th>Rp {{ number_format($transaksi->total_harga ?? 0, 0, ',', '.') }}</th>
+                                <th>{{ number_format($transaksi->total_poin ?? 0, 0, ',', '.') }} poin</th>
                             </tr>
                         </tfoot>
                     </table>
@@ -135,17 +145,17 @@
             </div>
             <div class="card-body">
                 <div class="text-center mb-3">
-                    @if($transaksi->warga->qr_code)
+                    @if(isset($transaksi->warga->qr_code) && $transaksi->warga->qr_code)
                     <img src="{{ asset('storage/' . $transaksi->warga->qr_code) }}" 
                          alt="QR Code" width="120" class="img-thumbnail mb-2">
                     @endif
-                    <h5>{{ $transaksi->warga->name }}</h5>
+                    <h5>{{ $transaksi->warga->name ?? 'N/A' }}</h5>
                 </div>
                 
                 <table class="table table-borderless">
                     <tr>
                         <th width="40%">Email</th>
-                        <td>{{ $transaksi->warga->email }}</td>
+                        <td>{{ $transaksi->warga->email ?? 'N/A' }}</td>
                     </tr>
                     <tr>
                         <th>Telepon</th>
@@ -158,17 +168,19 @@
                     <tr>
                         <th>Total Poin</th>
                         <td>
-                            <strong>{{ number_format($transaksi->warga->total_points, 0, ',', '.') }}</strong>
+                            <strong>{{ number_format($transaksi->warga->total_points ?? 0, 0, ',', '.') }}</strong>
                             <small class="text-muted d-block">Setelah transaksi ini</small>
                         </td>
                     </tr>
                 </table>
                 
                 <div class="mt-3">
+                    @if(isset($transaksi->warga->id))
                     <a href="{{ route('petugas.warga.show', $transaksi->warga->id) }}" 
                        class="btn btn-netra-outline w-100">
                         <i class="bi bi-person me-2"></i>Lihat Profil Warga
                     </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -180,11 +192,13 @@
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
+                    @if(isset($transaksi->warga->id))
                     <a href="{{ route('petugas.transaksi.create') }}?warga_id={{ $transaksi->warga->id }}" 
                        class="btn btn-netra">
                         <i class="bi bi-plus-circle me-2"></i>Transaksi Baru dengan Warga Ini
                     </a>
-                    <a href="{{ route('petugas.scan') }}" class="btn btn-netra-outline">
+                    @endif
+                    <a href="{{ route('petugas.scan.index') }}" class="btn btn-netra-outline">
                         <i class="bi bi-qr-code-scan me-2"></i>Scan QR Code Lain
                     </a>
                 </div>

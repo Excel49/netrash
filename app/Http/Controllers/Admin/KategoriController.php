@@ -23,11 +23,19 @@ class KategoriController extends Controller
     {
         $request->validate([
             'nama_kategori' => 'required|unique:kategori_sampah',
+            'jenis_sampah' => 'required|in:organik,anorganik,berbahaya,daur_ulang,lainnya',
+            'harga_per_kg' => 'required|numeric|min:0',
             'poin_per_kg' => 'required|numeric|min:0',
-            'warna_label' => 'required',
         ]);
         
-        KategoriSampah::create($request->all());
+        KategoriSampah::create([
+            'nama_kategori' => $request->nama_kategori,
+            'jenis_sampah' => $request->jenis_sampah,
+            'harga_per_kg' => $request->harga_per_kg,
+            'poin_per_kg' => $request->poin_per_kg,
+            'deskripsi' => $request->deskripsi,
+            'status' => 1,
+        ]);
         
         return redirect()->route('admin.kategori.index')
             ->with('success', 'Kategori berhasil dibuat');
@@ -45,11 +53,18 @@ class KategoriController extends Controller
         
         $request->validate([
             'nama_kategori' => 'required|unique:kategori_sampah,nama_kategori,' . $id,
+            'jenis_sampah' => 'required|in:organik,anorganik,berbahaya,daur_ulang,lainnya',
+            'harga_per_kg' => 'required|numeric|min:0',
             'poin_per_kg' => 'required|numeric|min:0',
-            'warna_label' => 'required',
         ]);
         
-        $kategori->update($request->all());
+        $kategori->update([
+            'nama_kategori' => $request->nama_kategori,
+            'jenis_sampah' => $request->jenis_sampah,
+            'harga_per_kg' => $request->harga_per_kg,
+            'poin_per_kg' => $request->poin_per_kg,
+            'deskripsi' => $request->deskripsi,
+        ]);
         
         return redirect()->route('admin.kategori.index')
             ->with('success', 'Kategori berhasil diperbarui');

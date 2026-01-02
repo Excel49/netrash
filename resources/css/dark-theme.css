@@ -1,0 +1,77 @@
+/* Dark Theme Styles */
+.theme-dark {
+    --bs-body-bg: #121212;
+    --bs-body-color: #e0e0e0;
+    --bs-card-bg: #1e1e1e;
+    --bs-card-color: #e0e0e0;
+    --bs-border-color: #2d2d2d;
+    --bs-primary: #3b82f6;
+    --bs-secondary: #6c757d;
+    --bs-success: #10b981;
+    --bs-info: #0ea5e9;
+    --bs-warning: #f59e0b;
+    --bs-danger: #ef4444;
+    --bs-light: #2d2d2d;
+    --bs-dark: #121212;
+}
+
+.theme-dark body {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+}
+
+.theme-dark .card {
+    background-color: var(--bs-card-bg);
+    color: var(--bs-card-color);
+    border-color: var(--bs-border-color);
+}
+
+.theme-dark .list-group-item {
+    background-color: var(--bs-card-bg);
+    color: var(--bs-card-color);
+    border-color: var(--bs-border-color);
+}
+
+.theme-dark .form-control {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-color: #3d3d3d;
+}
+
+.theme-dark .form-control:focus {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
+}
+
+.theme-dark .table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--bs-body-color);
+    --bs-table-border-color: var(--bs-border-color);
+}
+
+.theme-dark .nav-tabs {
+    --bs-nav-tabs-link-active-bg: var(--bs-card-bg);
+    --bs-nav-tabs-link-active-color: var(--bs-primary);
+}
+
+.theme-dark .alert {
+    --bs-alert-bg: rgba(255, 255, 255, 0.1);
+    --bs-alert-border-color: rgba(255, 255, 255, 0.2);
+    --bs-alert-color: inherit;
+}
+
+/* NetraTrash specific dark theme adjustments */
+.theme-dark .btn-netra {
+    background: linear-gradient(135deg, var(--bs-primary) 0%, #1d4ed8 100%);
+    border-color: var(--bs-primary);
+}
+
+.theme-dark .btn-netra:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+}
+
+.theme-dark .bg-netra {
+    background-color: var(--bs-primary) !important;
+}

@@ -21,9 +21,6 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\VerificationController;
 use App\Models\User;
-use App\Models\Transaksi;
-use App\Models\PenarikanPoin;
-use App\Models\KategoriSampah;
 
 /*
 |--------------------------------------------------------------------------
@@ -53,16 +50,23 @@ Route::post('/password/email', [ForgotPasswordController::class, 'sendResetLinkE
 Route::get('/password/reset/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
 Route::post('/password/reset', [ResetPasswordController::class, 'reset'])->name('password.update');
 
-Route::get('/email/verify', [VerificationController::class, 'show'])->name('verification.notice');
-Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->name('verification.verify')->middleware(['auth', 'signed']);
-Route::post('/email/resend', [VerificationController::class, 'resend'])->name('verification.resend')->middleware(['auth', 'throttle:6,1']);
+// Email Verification Routes
+Route::get('/email/verify', [VerificationController::class, 'show'])
+    ->middleware('auth')
+    ->name('verification.notice');
+
+Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
+    ->middleware(['auth', 'signed'])
+    ->name('verification.verify');
+
+Route::post('/email/resend', [VerificationController::class, 'resend'])
+    ->middleware(['auth', 'throttle:6,1'])
+    ->name('verification.resend');
 
 // ==================== PUBLIC ROUTES ====================
 Route::get('/', function () {
     return redirect()->route('login');
 });
-
-Route::get('/home', [HomeController::class, 'index'])->name('home');
 
 // About and information pages
 Route::get('/about', function () {
@@ -85,11 +89,32 @@ Route::get('/terms-conditions', function () {
     return view('pages.terms');
 })->name('terms');
 
+Route::get('/help', function () {
+    return view('pages.help');
+})->name('help');
+
 // ==================== AUTHENTICATED ROUTES (ALL USERS) ====================
 Route::middleware(['auth'])->group(function () {
     // Dashboard Route - untuk semua user berdasarkan role
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard');
+    
+    // Home redirect berdasarkan role
+    Route::get('/home', function () {
+        /** @var User $user */
+        $user = Auth::user();
+        
+        // Gunakan method dari model User yang sudah ada
+        if ($user->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        } elseif ($user->isPetugas()) {
+            return redirect()->route('petugas.dashboard');
+        } elseif ($user->isWarga()) {
+            return redirect()->route('warga.dashboard');
+        }
+        
+        return redirect('/dashboard');
+    })->name('home');
     
     // Profile routes untuk semua user
     Route::prefix('profile')->name('profile.')->group(function () {
@@ -100,6 +125,12 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/photo', [ProfileController::class, 'updatePhoto'])->name('photo.update');
         Route::get('/activity', [ProfileController::class, 'activity'])->name('activity');
         Route::get('/security', [ProfileController::class, 'security'])->name('security');
+        Route::get('/preferences', [ProfileController::class, 'preferences'])->name('preferences');
+        Route::patch('/preferences', [ProfileController::class, 'updatePreferences'])->name('preferences.update');
+        
+        // Notification settings
+        Route::get('/notification-settings', [NotifikasiController::class, 'settings'])->name('notification.settings');
+        Route::post('/notification-settings', [NotifikasiController::class, 'updateSettings'])->name('notification.settings.update');
     });
     
     // Notifikasi untuk semua user
@@ -110,13 +141,31 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/read-all', [NotifikasiController::class, 'markAllAsRead'])->name('read-all');
         Route::delete('/{id}', [NotifikasiController::class, 'destroy'])->name('destroy');
         Route::delete('/clear-all', [NotifikasiController::class, 'clearAll'])->name('clear-all');
-        Route::get('/settings', [NotifikasiController::class, 'settings'])->name('settings');
-        Route::post('/settings', [NotifikasiController::class, 'updateSettings'])->name('settings.update');
+
+    });
+});
+
+// ==================== NOTIFICATION ROUTES ====================
+Route::middleware(['auth'])->prefix('notifikasi')->name('notifikasi.')->group(function () {
+    // For all users
+    Route::get('/', [NotifikasiController::class, 'index'])->name('index');
+    Route::get('/unread', [NotifikasiController::class, 'unread'])->name('unread');
+    Route::post('/{id}/read', [NotifikasiController::class, 'markAsRead'])->name('read');
+    Route::post('/read-all', [NotifikasiController::class, 'markAllAsRead'])->name('read-all');
+    Route::delete('/{id}', [NotifikasiController::class, 'destroy'])->name('destroy');
+    Route::delete('/clear-all', [NotifikasiController::class, 'clearAll'])->name('clear-all');
+    
+    // For petugas only - Gunakan middleware role:2
+    Route::middleware('role:2')->group(function () {
+        Route::get('/create', [NotifikasiController::class, 'create'])->name('create');
+        Route::post('/', [NotifikasiController::class, 'store'])->name('store');
+        Route::get('/sent', [NotifikasiController::class, 'sent'])->name('sent');
     });
 });
 
 // ==================== ADMIN ROUTES ====================
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+// Gunakan middleware role:1 untuk admin (role_id = 1)
+Route::middleware(['auth', 'role:1'])->prefix('admin')->name('admin.')->group(function () {
     // Dashboard Admin
     Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('dashboard');
     
@@ -253,7 +302,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         
         Route::post('/create', function () {
             // Backup logic
-            return back()->with('success', 'Backup created successfully');
+            return back()->with('success', 'Backup berhasil dibuat');
         })->name('create');
         
         Route::get('/download/{filename}', function ($filename) {
@@ -264,12 +313,12 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::delete('/delete/{filename}', function ($filename) {
             // Delete backup
             \Illuminate\Support\Facades\Storage::delete('backups/' . $filename);
-            return back()->with('success', 'Backup deleted successfully');
+            return back()->with('success', 'Backup berhasil dihapus');
         })->name('delete');
         
         Route::post('/restore/{filename}', function ($filename) {
             // Restore backup
-            return back()->with('success', 'Backup restored successfully');
+            return back()->with('success', 'Backup berhasil dipulihkan');
         })->name('restore');
     });
     
@@ -293,18 +342,19 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         
         Route::get('/export', function () {
             // Export logs
-            return back()->with('success', 'Logs exported successfully');
+            return back()->with('success', 'Logs berhasil diexport');
         })->name('export');
         
         Route::delete('/clear', function () {
             // Clear logs
-            return back()->with('success', 'Logs cleared successfully');
+            return back()->with('success', 'Logs berhasil dibersihkan');
         })->name('clear');
     });
 });
 
 // ==================== PETUGAS ROUTES ====================
-Route::middleware(['auth', 'role:petugas'])->prefix('petugas')->name('petugas.')->group(function () {
+// Gunakan middleware role:2 untuk petugas (role_id = 2)
+Route::middleware(['auth', 'role:2'])->prefix('petugas')->name('petugas.')->group(function () {
     // Dashboard Petugas
     Route::get('/dashboard', [DashboardController::class, 'petugasDashboard'])->name('dashboard');
     
@@ -372,7 +422,8 @@ Route::middleware(['auth', 'role:petugas'])->prefix('petugas')->name('petugas.')
 });
 
 // ==================== WARGA ROUTES ====================
-Route::middleware(['auth', 'role:warga'])->prefix('warga')->name('warga.')->group(function () {
+// Gunakan middleware role:3 untuk warga (role_id = 3)
+Route::middleware(['auth', 'role:3'])->prefix('warga')->name('warga.')->group(function () {
     // Dashboard Warga
     Route::get('/dashboard', [DashboardController::class, 'wargaDashboard'])->name('dashboard');
     
@@ -401,15 +452,33 @@ Route::middleware(['auth', 'role:warga'])->prefix('warga')->name('warga.')->grou
         Route::get('/', [PenarikanPoinController::class, 'index'])->name('index');
         Route::get('/create', [PenarikanPoinController::class, 'create'])->name('create');
         Route::post('/', [PenarikanPoinController::class, 'store'])->name('store');
-        Route::get('/history', [PenarikanPoinController::class, 'history'])->name('history');
-        Route::get('/pending', [PenarikanPoinController::class, 'pending'])->name('pending');
-        Route::get('/approved', [PenarikanPoinController::class, 'approved'])->name('approved');
-        Route::get('/completed', [PenarikanPoinController::class, 'completed'])->name('completed');
-        Route::get('/rejected', [PenarikanPoinController::class, 'rejected'])->name('rejected');
+        
+        // Filter routes - tambahkan parameter optional
+        Route::get('/history', [PenarikanPoinController::class, 'index'])->name('history');
+        Route::get('/pending', function() {
+            return app()->make(PenarikanPoinController::class)->index();
+        })->name('pending');
+        Route::get('/approved', function() {
+            return app()->make(PenarikanPoinController::class)->index();
+        })->name('approved');
+        Route::get('/completed', function() {
+            return app()->make(PenarikanPoinController::class)->index();
+        })->name('completed');
+        Route::get('/rejected', function() {
+            return app()->make(PenarikanPoinController::class)->index();
+        })->name('rejected');
+        
         Route::get('/{penarikan}', [PenarikanPoinController::class, 'show'])->name('show');
+        
+        // Untuk print receipt, tambahkan route baru di controller
         Route::get('/{penarikan}/print', [PenarikanPoinController::class, 'print'])->name('print');
+        
         Route::delete('/{penarikan}', [PenarikanPoinController::class, 'destroy'])->name('destroy');
-        Route::post('/{penarikan}/cancel', [PenarikanPoinController::class, 'cancel'])->name('cancel');
+        
+        // Untuk cancel, gunakan route destroy atau buat route baru
+        Route::post('/{penarikan}/cancel', function($id) {
+            return redirect()->route('warga.penarikan.destroy', $id);
+        })->name('cancel');
     });
     
     // ========== KATEGORI INFO ==========
@@ -519,68 +588,6 @@ Route::prefix('api')->middleware('auth')->group(function () {
     });
 });
 
-// ==================== SHARED ROUTES (MULTI-ROLE) ====================
-Route::middleware(['auth'])->group(function () {
-    // Shared profile routes (already defined above, included for completeness)
-    
-    // Shared notifications routes (already defined above)
-    
-    // Shared dashboard (redirects based on role)
-    Route::get('/home', function () {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-        
-        if ($user->hasRole('admin')) {
-            return redirect()->route('admin.dashboard');
-        } elseif ($user->hasRole('petugas')) {
-            return redirect()->route('petugas.dashboard');
-        } elseif ($user->hasRole('warga')) {
-            return redirect()->route('warga.dashboard');
-        }
-        
-        return redirect('/dashboard');
-    })->name('home');
-    
-    // Shared settings
-    Route::get('/settings', function () {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-        
-        if ($user->hasRole('admin')) {
-            return redirect()->route('admin.settings.index');
-        } elseif ($user->hasRole('petugas')) {
-            return view('petugas.settings.index');
-        } elseif ($user->hasRole('warga')) {
-            return view('warga.settings.index');
-        }
-        
-        return redirect('/profile');
-    })->name('settings');
-    
-    // Shared help/support
-    Route::get('/help', function () {
-        return view('shared.help.index');
-    })->name('help');
-    
-    Route::get('/help/faq', function () {
-        return view('shared.help.faq');
-    })->name('help.faq');
-    
-    Route::get('/help/contact', function () {
-        return view('shared.help.contact');
-    })->name('help.contact');
-    
-    // Shared feedback
-    Route::get('/feedback', function () {
-        return view('shared.feedback.index');
-    })->name('feedback');
-    
-    Route::post('/feedback', function (Request $request) {
-        // Process feedback
-        return back()->with('success', 'Feedback berhasil dikirim');
-    })->name('feedback.submit');
-});
-
 // ==================== PUBLIC API ROUTES ====================
 Route::prefix('public')->name('public.')->group(function () {
     // Public information
@@ -594,16 +601,16 @@ Route::prefix('public')->name('public.')->group(function () {
     
     Route::post('/calculator/calculate', function (Request $request) {
         // Public calculation logic
-        return response()->json(['result' => 'Calculation result']);
+        return response()->json(['result' => 'Hasil perhitungan']);
     })->name('calculator.calculate');
     
     // Public statistics
     Route::get('/stats', function () {
         $stats = [
-            'total_users' => User::count(),
-            'total_transactions' => Transaksi::count(),
-            'total_withdrawals' => PenarikanPoin::count(),
-            'total_points' => User::sum('total_points'),
+            'total_users' => \App\Models\User::count(),
+            'total_transactions' => \App\Models\Transaksi::count(),
+            'total_withdrawals' => \App\Models\PenarikanPoin::count(),
+            'total_points' => \App\Models\User::sum('total_points'),
         ];
         
         return response()->json($stats);
@@ -649,6 +656,12 @@ Route::get('/503', function () {
 Route::get('/maintenance', function () {
     return view('maintenance');
 })->name('maintenance');
+
+// ==================== SESSION KEEP-ALIVE ====================
+Route::post('/session/keep-alive', function () {
+    session()->put('last_activity', time());
+    return response()->json(['success' => true]);
+})->name('session.keep-alive')->middleware('auth');
 
 // ==================== FALLBACK ROUTE ====================
 Route::fallback(function () {

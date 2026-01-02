@@ -8,11 +8,12 @@ use App\Models\Notifikasi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PenarikanPoinController extends Controller
 {
     // Index untuk warga
-    public function index()
+    public function index(Request $request)
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
@@ -22,8 +23,14 @@ class PenarikanPoinController extends Controller
         }
         
         $wargaId = Auth::id();
-        $penarikan = PenarikanPoin::where('warga_id', $wargaId)
-            ->orderBy('created_at', 'desc')
+        $query = PenarikanPoin::where('warga_id', $wargaId);
+        
+        // Filter berdasarkan status jika ada
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        $penarikan = $query->orderBy('created_at', 'desc')
             ->paginate(15);
             
         return view('warga.penarikan.index', compact('penarikan'));
@@ -54,7 +61,6 @@ class PenarikanPoinController extends Controller
         
         $request->validate([
             'jumlah_poin' => 'required|integer|min:100',
-            'alasan_penarikan' => 'required|string|max:500',
         ]);
         
         // Cek poin cukup
@@ -91,7 +97,6 @@ class PenarikanPoinController extends Controller
                 'jumlah_poin' => $request->jumlah_poin,
                 'jumlah_rupiah' => $jumlahRupiah,
                 'status' => 'pending',
-                'alasan_penarikan' => $request->alasan_penarikan,
                 'tanggal_pengajuan' => now(),
             ]);
             
@@ -134,7 +139,23 @@ class PenarikanPoinController extends Controller
         return view('warga.penarikan.show', compact('penarikan'));
     }
     
-    // Cancel penarikan (warga)
+    // Print receipt untuk warga
+    public function print($id)
+    {
+        $penarikan = PenarikanPoin::with(['warga', 'admin'])->findOrFail($id);
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        
+        // Cek akses
+        if ($user->role_id === 3 && $penarikan->warga_id != $user->id) {
+            abort(403, 'Anda tidak memiliki akses ke data ini');
+        }
+        
+        $pdf = Pdf::loadView('warga.penarikan.print', compact('penarikan'));
+        return $pdf->download('penarikan-'.$penarikan->id.'-'.date('YmdHis').'.pdf');
+    }
+    
+    // Cancel penarikan (warga) - menggunakan destroy method
     public function destroy($id)
     {
         $penarikan = PenarikanPoin::findOrFail($id);
@@ -340,5 +361,43 @@ class PenarikanPoinController extends Controller
         ]);
         
         return back()->with('success', 'Penarikan telah diselesaikan!');
+    }
+    
+    // Additional admin filter methods
+    public function pending()
+    {
+        return $this->adminIndexWithFilter('pending');
+    }
+    
+    public function approved()
+    {
+        return $this->adminIndexWithFilter('approved');
+    }
+    
+    public function completed()
+    {
+        return $this->adminIndexWithFilter('completed');
+    }
+    
+    public function rejected()
+    {
+        return $this->adminIndexWithFilter('rejected');
+    }
+    
+    private function adminIndexWithFilter($status)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        
+        if ($user->role_id !== 1) {
+            abort(403, 'Hanya admin yang dapat mengakses halaman ini');
+        }
+        
+        $penarikan = PenarikanPoin::with(['warga', 'admin'])
+            ->where('status', $status)
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+            
+        return view('admin.penarikan.index', compact('penarikan'));
     }
 }
