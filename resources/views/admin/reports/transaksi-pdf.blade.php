@@ -12,17 +12,19 @@
             font-family: 'DejaVu Sans', Arial, sans-serif;
             font-size: 10px;
             line-height: 1.4;
+            margin: 0;
+            padding: 0;
         }
         .header {
             text-align: center;
             margin-bottom: 20px;
-            border-bottom: 2px solid #2C3E50;
+            border-bottom: 2px solid #2E8B57;
             padding-bottom: 10px;
         }
         .header h1 {
             margin: 0;
-            font-size: 20px;
-            color: #2C3E50;
+            font-size: 24px;
+            color: #2E8B57;
             font-weight: bold;
         }
         .header .subtitle {
@@ -35,9 +37,9 @@
             color: #777;
             margin-top: 8px;
         }
-        .summary {
+        .summary-section {
             margin: 15px 0;
-            padding: 10px;
+            padding: 15px;
             background-color: #f8f9fa;
             border: 1px solid #dee2e6;
             border-radius: 5px;
@@ -46,9 +48,10 @@
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 10px;
+            margin-bottom: 15px;
         }
         .summary-card {
-            padding: 8px;
+            padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
             text-align: center;
@@ -65,22 +68,49 @@
             font-weight: bold;
             margin: 0;
         }
-        .total-transaksi { border-color: #2C3E50; }
-        .total-transaksi .value { color: #2C3E50; }
-        .total-berat { border-color: #27AE60; }
-        .total-berat .value { color: #27AE60; }
-        .total-pendapatan { border-color: #E74C3C; }
-        .total-pendapatan .value { color: #E74C3C; }
-        .total-poin { border-color: #F39C12; }
-        .total-poin .value { color: #F39C12; }
-        
+        .status-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            text-align: center;
+        }
+        .status-stat {
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .status-completed {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .status-cancelled {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
+            page-break-inside: auto;
+        }
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        thead {
+            display: table-header-group;
+        }
+        tfoot {
+            display: table-footer-group;
         }
         th {
-            background-color: #2C3E50;
+            background-color: #2E8B57;
             color: white;
             font-weight: bold;
             padding: 8px 5px;
@@ -139,6 +169,20 @@
             font-size: 9px;
             color: #777;
         }
+        /* Print specific styles */
+        @media print {
+            .header {
+                border-bottom: 2px solid #000;
+            }
+            .summary-section {
+                border: 1px solid #ccc;
+            }
+            th {
+                background-color: #ddd !important;
+                color: #000 !important;
+                -webkit-print-color-adjust: exact;
+            }
+        }
     </style>
 </head>
 <body>
@@ -146,11 +190,7 @@
         <h1>{{ $title }}</h1>
         <div class="subtitle">Sistem Manajemen Sampah NetraTrash</div>
         <div class="info">
-            @if($startDate && $endDate)
-                Periode: {{ \Carbon\Carbon::parse($startDate)->format('d/m/Y') }} s/d {{ \Carbon\Carbon::parse($endDate)->format('d/m/Y') }}
-            @else
-                Semua Data Transaksi
-            @endif
+            Periode: {{ \Carbon\Carbon::parse($startDate)->format('d/m/Y') }} s/d {{ \Carbon\Carbon::parse($endDate)->format('d/m/Y') }}
             | Dicetak: {{ $exportDate }}
             @if($status)
                 | Status: {{ ucfirst($status) }}
@@ -158,30 +198,45 @@
         </div>
     </div>
 
-    <div class="summary">
+    <div class="summary-section">
         <div class="summary-grid">
-            <div class="summary-card total-transaksi">
+            <div class="summary-card" style="border-color: #2E8B57;">
                 <h3>Total Transaksi</h3>
-                <div class="value">{{ number_format($summary['total']) }}</div>
+                <div class="value" style="color: #2E8B57;">{{ number_format($summary['total']) }}</div>
             </div>
-            <div class="summary-card total-berat">
+            <div class="summary-card" style="border-color: #27AE60;">
                 <h3>Total Berat</h3>
-                <div class="value">{{ number_format($summary['total_berat'], 2) }} kg</div>
+                <div class="value" style="color: #27AE60;">{{ number_format($summary['total_berat'], 2) }} kg</div>
             </div>
-            <div class="summary-card total-pendapatan">
-                <h3>Total Pendapatan</h3>
-                <div class="value">Rp {{ number_format($summary['total_harga'], 0, ',', '.') }}</div>
-            </div>
-            <div class="summary-card total-poin">
+            <div class="summary-card" style="border-color: #F39C12;">
                 <h3>Total Poin</h3>
-                <div class="value">{{ number_format($summary['total_poin']) }}</div>
+                <div class="value" style="color: #F39C12;">{{ number_format($summary['total_poin']) }}</div>
             </div>
         </div>
-        <div style="text-align: center; font-size: 9px; color: #666; margin-top: 8px;">
-            Selesai: {{ $summary['completed'] }} | Pending: {{ $summary['pending'] }} | Dibatalkan: {{ $summary['cancelled'] }}
+        
+        <div class="status-stats">
+            <div class="status-stat status-completed">
+                <strong>Selesai:</strong> {{ $summary['completed'] }}
+                @if($summary['total'] > 0)
+                ({{ round(($summary['completed']/$summary['total'])*100, 1) }}%)
+                @endif
+            </div>
+            <div class="status-stat status-pending">
+                <strong>Pending:</strong> {{ $summary['pending'] }}
+                @if($summary['total'] > 0)
+                ({{ round(($summary['pending']/$summary['total'])*100, 1) }}%)
+                @endif
+            </div>
+            <div class="status-stat status-cancelled">
+                <strong>Dibatalkan:</strong> {{ $summary['cancelled'] }}
+                @if($summary['total'] > 0)
+                ({{ round(($summary['cancelled']/$summary['total'])*100, 1) }}%)
+                @endif
+            </div>
         </div>
     </div>
 
+    @if($data->count() > 0)
     <table>
         <thead>
             <tr>
@@ -191,8 +246,7 @@
                 <th>Warga</th>
                 <th>Petugas</th>
                 <th width="60" class="text-right">Berat (kg)</th>
-                <th width="80" class="text-right">Harga (Rp)</th>
-                <th width="60" class="text-right">Poin</th>
+                <th width="80" class="text-right">Poin</th>
                 <th width="70">Status</th>
                 <th>Catatan</th>
             </tr>
@@ -202,11 +256,16 @@
             <tr>
                 <td class="text-center">{{ $index + 1 }}</td>
                 <td>{{ $transaksi->kode_transaksi }}</td>
-                <td>{{ $transaksi->tanggal_transaksi->format('d/m/Y') }}<br>{{ $transaksi->tanggal_transaksi->format('H:i') }}</td>
-                <td>{{ $transaksi->warga->name }}<br><small style="color: #666;">{{ $transaksi->warga->phone ?? '-' }}</small></td>
-                <td>{{ $transaksi->petugas->name }}</td>
+                <td>
+                    {{ $transaksi->created_at->format('d/m/Y') }}<br>
+                    <small style="color: #666;">{{ $transaksi->created_at->format('H:i') }}</small>
+                </td>
+                <td>
+                    {{ $transaksi->warga->name ?? 'N/A' }}<br>
+                    <small style="color: #666;">{{ $transaksi->warga->phone ?? '-' }}</small>
+                </td>
+                <td>{{ $transaksi->petugas->name ?? 'N/A' }}</td>
                 <td class="text-right">{{ number_format($transaksi->total_berat, 2) }}</td>
-                <td class="text-right">{{ number_format($transaksi->total_harga, 0, ',', '.') }}</td>
                 <td class="text-right">{{ number_format($transaksi->total_poin) }}</td>
                 <td class="text-center">
                     @if($transaksi->status == 'completed')
@@ -225,20 +284,22 @@
             <tr>
                 <td colspan="5" class="text-right"><strong>TOTAL:</strong></td>
                 <td class="text-right"><strong>{{ number_format($summary['total_berat'], 2) }} kg</strong></td>
-                <td class="text-right"><strong>Rp {{ number_format($summary['total_harga'], 0, ',', '.') }}</strong></td>
                 <td class="text-right"><strong>{{ number_format($summary['total_poin']) }}</strong></td>
                 <td colspan="2"></td>
             </tr>
         </tfoot>
     </table>
+    @else
+    <div style="text-align: center; padding: 40px; border: 1px solid #dee2e6; border-radius: 5px; margin-top: 20px;">
+        <div style="font-size: 14px; color: #666; margin-bottom: 10px;">Tidak ada data transaksi pada periode ini</div>
+        <div style="font-size: 12px; color: #999;">Periode: {{ \Carbon\Carbon::parse($startDate)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($endDate)->format('d/m/Y') }}</div>
+    </div>
+    @endif
 
     <div class="footer">
         <div>Laporan ini dibuat secara otomatis oleh Sistem NetraTrash</div>
         <div>Alamat: Jl. Contoh No. 123, Kota Bandung | Telp: (022) 123456</div>
-    </div>
-    
-    <div class="page-number">
-        Halaman 1
+        <div style="margin-top: 5px;">Halaman 1/1</div>
     </div>
 </body>
 </html>

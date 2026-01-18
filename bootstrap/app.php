@@ -13,6 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         // Middleware groups
+        $middleware->trustProxies(at: '*');
         $middleware->web(append: [
             \App\Http\Middleware\ApplyPreferences::class,
         ]);

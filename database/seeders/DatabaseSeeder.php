@@ -1,4 +1,5 @@
 <?php
+// database/seeders/DatabaseSeeder.php
 
 namespace Database\Seeders;
 
@@ -9,7 +10,12 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            NetraTrashSeeder::class,
+            RoleSeeder::class,
+            KategoriSampahSeeder::class,
+            BarangSeeder::class,
+            UserSeeder::class,
+            TransaksiSeeder::class,       // Transaksi dasar (10-15 per warga)
+            NotifikasiSeeder::class,
         ]);
     }
 }

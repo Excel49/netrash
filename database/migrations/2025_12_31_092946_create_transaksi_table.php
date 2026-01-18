@@ -12,11 +12,12 @@ return new class extends Migration
             $table->id();
             $table->string('kode_transaksi')->unique();
             $table->foreignId('warga_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('petugas_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('petugas_id')->nullable()->constrained('users')->onDelete('set null'); // UBAH INI
             $table->decimal('total_berat', 10, 2);
             $table->decimal('total_harga', 15, 2);
             $table->integer('total_poin');
             $table->enum('status', ['pending', 'completed', 'cancelled'])->default('pending');
+            $table->enum('jenis_transaksi', ['setoran', 'penukaran', 'transfer'])->default('setoran'); // TAMBAHKAN INI
             $table->text('catatan')->nullable();
             $table->dateTime('tanggal_transaksi');
             $table->timestamps();

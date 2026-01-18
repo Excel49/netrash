@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use App\Models\Transaksi;
-use App\Models\PenarikanPoin;
 use App\Models\User;
 use App\Models\ActivityLog;
 use Carbon\Carbon;
@@ -203,12 +202,6 @@ class ProfileController extends Controller
         if ($user->role->name == 'warga') {
             $stats['total_points'] = $user->total_points ?? 0;
             $stats['total_transactions'] = Transaksi::where('warga_id', $user->id)->count();
-            $stats['withdrawn_points'] = PenarikanPoin::where('warga_id', $user->id)
-                ->where('status', 'completed')
-                ->sum('jumlah_poin');
-            $stats['pending_points'] = PenarikanPoin::where('warga_id', $user->id)
-                ->where('status', 'pending')
-                ->sum('jumlah_poin');
         }
         
         return $stats;

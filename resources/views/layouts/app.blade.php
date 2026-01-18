@@ -2,6 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" 
       data-bs-theme="{{ Cookie::get('theme', 'light') }}">
 <head>
+       
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -24,11 +25,126 @@
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
+    <!-- Bootstrap 5 JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script>
+        // CSRF Token setup for AJAX requests
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+        
+        // === THEME MANAGEMENT ===
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            localStorage.setItem('theme', theme);
+            document.cookie = `theme=${theme}; path=/; max-age=31536000`;
+            
+            // Update switch state if exists
+            const themeSwitchDropdown = document.getElementById('themeSwitchDropdown');
+            if (themeSwitchDropdown) {
+                themeSwitchDropdown.checked = (theme === 'dark');
+            }
+        }
+        
+        function getCurrentTheme() {
+            // Priority: localStorage > cookie > system preference > light
+            const localStorageTheme = localStorage.getItem('theme');
+            if (localStorageTheme) return localStorageTheme;
+            
+            // Check cookie
+            const cookieTheme = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('theme='))
+                ?.split('=')[1];
+            if (cookieTheme) return cookieTheme;
+            
+            // Check system preference
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                return 'dark';
+            }
+            
+            return 'light';
+        }
+        
+        function initializeTheme() {
+            const currentTheme = getCurrentTheme();
+            applyTheme(currentTheme);
+        }
+        
+        function setupThemeSwitcher() {
+            const themeSwitchDropdown = document.getElementById('themeSwitchDropdown');
+            if (themeSwitchDropdown) {
+                const currentTheme = getCurrentTheme();
+                themeSwitchDropdown.checked = (currentTheme === 'dark');
+                
+                themeSwitchDropdown.addEventListener('change', function() {
+                    const newTheme = this.checked ? 'dark' : 'light';
+                    applyTheme(newTheme);
+                });
+            }
+        }
+        // === END THEME MANAGEMENT ===
+        
+        // Initialize everything when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Apply theme FIRST
+            initializeTheme();
+            
+            // Setup theme switcher
+            setupThemeSwitcher();
+            
+            // Initialize Bootstrap tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Initialize Bootstrap popovers
+            var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+            var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+                return new bootstrap.Popover(popoverTriggerEl);
+            });
+            
+            // Form submission loading states
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', function() {
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    if (submitBtn && !submitBtn.classList.contains('no-loading')) {
+                        submitBtn.innerHTML = '<span class="loading-spinner"></span> Memproses...';
+                        submitBtn.disabled = true;
+                    }
+                });
+            });
+        });
+        
+        // Also apply theme when page is shown (for back/forward navigation)
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                initializeTheme();
+            }
+        });
+    </script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- jQuery (optional, if needed) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Alpine.js -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
     
     <!-- Custom CSS -->
     <style>
@@ -246,12 +362,53 @@
         .main-content {
             min-height: calc(100vh - 56px - 73px); /* viewport - navbar - footer */
         }
+
+        /* Fix for navbar on mobile */
+        @media (max-width: 992px) {
+            .navbar-collapse {
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+            
+            .navbar-nav .nav-link {
+                margin: 0.125rem 0;
+            }
+        }
     </style>
     
     <!-- Page Specific Styles -->
     @stack('styles')
     
     <!-- Livewire Styles (if using Livewire) -->
+        <!-- Inline script for immediate theme application -->
+    <script>
+        // Apply theme immediately to prevent flash of wrong theme
+        (function() {
+            try {
+                // Check localStorage first (fastest)
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme) {
+                    document.documentElement.setAttribute('data-bs-theme', savedTheme);
+                    return;
+                }
+                
+                // Check cookie
+                const cookieTheme = document.cookie
+                    .split('; ')
+                    .find(row => row.startsWith('theme='))
+                    ?.split('=')[1];
+                if (cookieTheme) {
+                    document.documentElement.setAttribute('data-bs-theme', cookieTheme);
+                    return;
+                }
+                
+                // Default to light
+                document.documentElement.setAttribute('data-bs-theme', 'light');
+            } catch (e) {
+                console.error('Error applying theme:', e);
+            }
+        })();
+    </script>
 
 </head>
 <body class="d-flex flex-column min-vh-100">
@@ -262,9 +419,6 @@
             <a class="navbar-brand d-flex align-items-center" href="{{ route('dashboard') }}">
                 <i class="fas fa-recycle me-2"></i>
                 <span class="fw-bold">NetraTrash</span>
-                @if(config('app.env') !== 'production')
-                    <span class="badge bg-warning ms-2">{{ config('app.env') }}</span>
-                @endif
             </a>
             
             <!-- Mobile Toggle Button -->
@@ -277,9 +431,10 @@
                 <!-- Main Navigation -->
                 <ul class="navbar-nav me-auto">
                     @auth
+                        <!-- Dashboard for all users -->
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" 
-                               href="{{ route('dashboard') }}">
+                            href="{{ route('dashboard') }}">
                                 <i class="fas fa-home me-1"></i> Dashboard
                             </a>
                         </li>
@@ -287,226 +442,86 @@
                         <!-- Role-based Navigation -->
                         @if(auth()->user()->isAdmin())
                             <!-- Admin Menu -->
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('admin/*') ? 'active' : '' }}" 
-                                   href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-users-cog me-1"></i> Users
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" 
+                                href="{{ route('admin.users.index') }}">
+                                    <i class="fas fa-users me-1"></i> Users
                                 </a>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" 
-                                           href="{{ route('admin.users.index') }}">
-                                            <i class="fas fa-users me-2"></i> Manage Users
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('admin.kategori.*') ? 'active' : '' }}" 
-                                           href="{{ route('admin.kategori.index') }}">
-                                            <i class="fas fa-tags me-2"></i> Categories
-                                        </a>
-                                    </li>
-                                </ul>
                             </li>
                             
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('admin/transaksi*') || request()->is('admin/penarikan*') ? 'active' : '' }}" 
-                                   href="#" role="button" data-bs-toggle="dropdown">
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('admin.kategori.*') ? 'active' : '' }}" 
+                                href="{{ route('admin.kategori.index') }}">
+                                    <i class="fas fa-tags me-1"></i> Categories
+                                </a>
+                            </li>
+                            
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('admin.barang.*') ? 'active' : '' }}" 
+                                href="{{ route('admin.barang.index') }}">
+                                    <i class="fas fa-box me-1"></i> Products
+                                </a>
+                            </li>
+                            
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('admin.transaksi.*') ? 'active' : '' }}" 
+                                href="{{ route('admin.transaksi.index') }}">
                                     <i class="fas fa-exchange-alt me-1"></i> Transactions
                                 </a>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('admin.transaksi.*') ? 'active' : '' }}" 
-                                           href="{{ route('admin.transaksi.index') }}">
-                                            <i class="fas fa-list me-2"></i> All Transactions
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('admin.penarikan.*') ? 'active' : '' }}" 
-                                           href="{{ route('admin.penarikan.index') }}">
-                                            <i class="fas fa-money-bill-wave me-2"></i> Withdrawals
-                                        </a>
-                                    </li>
-                                </ul>
                             </li>
                             
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('admin/reports*') ? 'active' : '' }}" 
-                                   href="#" role="button" data-bs-toggle="dropdown">
+                             
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}" 
+                                href="{{ route('admin.reports.index') }}">
                                     <i class="fas fa-chart-bar me-1"></i> Reports
                                 </a>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}" 
-                                           href="{{ route('admin.reports.index') }}">
-                                            <i class="fas fa-chart-pie me-2"></i> Overview
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="{{ route('admin.reports.transaksi') }}">
-                                            <i class="fas fa-exchange-alt me-2"></i> Transaction Report
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="{{ route('admin.reports.users') }}">
-                                            <i class="fas fa-users me-2"></i> User Report
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
-                            
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('admin/settings*') || request()->is('admin/logs*') || request()->is('admin/backup*') ? 'active' : '' }}" 
-                                   href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-cog me-1"></i> Settings
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item" href="{{ route('admin.settings.index') }}">
-                                            <i class="fas fa-sliders-h me-2"></i> System Settings
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="{{ route('admin.logs.index') }}">
-                                            <i class="fas fa-clipboard-list me-2"></i> Logs
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="{{ route('admin.backup.index') }}">
-                                            <i class="fas fa-database me-2"></i> Backup
-                                        </a>
-                                    </li>
-                                </ul>
                             </li>
                             
                         @elseif(auth()->user()->isPetugas())
                             <!-- Petugas Menu -->
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('petugas.scan.*') ? 'active' : '' }}" 
-                                   href="{{ route('petugas.scan.index') }}">
+                                href="{{ route('petugas.scan.index') }}">
                                     <i class="fas fa-qrcode me-1"></i> Scan QR
                                 </a>
                             </li>
                             
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('petugas/transaksi*') ? 'active' : '' }}" 
-                                   href="#" role="button" data-bs-toggle="dropdown">
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('petugas.transaksi.*') ? 'active' : '' }}" 
+                                href="{{ route('petugas.transaksi.index') }}">
                                     <i class="fas fa-exchange-alt me-1"></i> Transactions
                                 </a>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('petugas.transaksi.*') ? 'active' : '' }}" 
-                                           href="{{ route('petugas.transaksi.index') }}">
-                                            <i class="fas fa-list me-2"></i> All Transactions
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="{{ route('petugas.transaksi.create') }}">
-                                            <i class="fas fa-plus-circle me-2"></i> New Transaction
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="{{ route('petugas.transaksi.today') }}">
-                                            <i class="fas fa-calendar-day me-2"></i> Today's Transactions
-                                        </a>
-                                    </li>
-                                </ul>
                             </li>
-                            
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('petugas/warga*') ? 'active' : '' }}" 
-                                   href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-users me-1"></i> Residents
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('petugas.warga.*') ? 'active' : '' }}" 
-                                           href="{{ route('petugas.warga.index') }}">
-                                            <i class="fas fa-list me-2"></i> All Residents
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="{{ route('petugas.warga.create') }}">
-                                            <i class="fas fa-user-plus me-2"></i> Add Resident
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
-                            
-                            <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('petugas.statistik.*') ? 'active' : '' }}" 
-                                   href="{{ route('petugas.statistik.index') }}">
-                                    <i class="fas fa-chart-line me-1"></i> Statistics
-                                </a>
-                            </li>
+                        
+
                             
                         @elseif(auth()->user()->isWarga())
                             <!-- Warga Menu -->
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('warga.qrcode.*') ? 'active' : '' }}" 
-                                   href="{{ route('warga.qrcode.index') }}">
+                                href="{{ route('warga.qrcode.index') }}">
                                     <i class="fas fa-qrcode me-1"></i> QR Code
                                 </a>
                             </li>
                             
-                            <!-- Menu Transaksi tanpa dropdown -->
                             <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('warga.transaksi.today') ? 'active' : '' }}" 
-                                   href="{{ route('warga.transaksi.today') }}">
-                                    <i class="fas fa-calendar-day me-1"></i> Transaksi
+                                <a class="nav-link {{ request()->routeIs('warga.transaksi.*') ? 'active' : '' }}" 
+                                href="{{ route('warga.transaksi.index') }}">
+                                    <i class="fas fa-exchange-alt me-1"></i> Transaksi
                                 </a>
                             </li>
                             
-                            <!-- Menu Semua Transaksi (opsional, jika tetap ingin ada) -->
-                            <!--
-                            <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('warga.transaksi.index') && !request()->routeIs('warga.transaksi.today') ? 'active' : '' }}" 
-                                   href="{{ route('warga.transaksi.index') }}">
-                                    <i class="fas fa-history me-1"></i> Semua Transaksi
-                                </a>
-                            </li>
-                            -->
                             
-                            <!-- Menu Poin tanpa dropdown -->
+                            <!-- TUKAR POIN MENU -->
                             <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('warga.penarikan.*') ? 'active' : '' }}" 
-                                   href="{{ route('warga.penarikan.index') }}">
-                                    <i class="fas fa-money-bill-wave me-1"></i> Poin
-                                </a>
-                            </li>
-                            
-                            <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('warga.kategori.*') ? 'active' : '' }}" 
-                                   href="{{ route('warga.kategori.index') }}">
-                                    <i class="fas fa-tags me-1"></i> Kategori
+                                <a class="nav-link {{ request()->routeIs('warga.barang.*') ? 'active' : '' }}" 
+                                href="{{ route('warga.barang.index') }}">
+                                    <i class="fas fa-shopping-bag me-1"></i> Tukar Poin
                                 </a>
                             </li>
                         @endif
                         
-                        <!-- Common Menu for All Users -->
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('notifikasi.*') ? 'active' : '' }}" 
-                               href="{{ route('notifikasi.index') }}">
-                                <i class="fas fa-bell me-1"></i> Notifikasi
-                            </a>
-                        </li>
-                        
-                    @else
-                        <!-- Guest Menu -->
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('about') ? 'active' : '' }}" href="{{ route('about') }}">
-                                <i class="fas fa-info-circle me-1"></i> Tentang
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('features') ? 'active' : '' }}" href="{{ route('features') }}">
-                                <i class="fas fa-star me-1"></i> Fitur
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('contact') ? 'active' : '' }}" href="{{ route('contact') }}">
-                                <i class="fas fa-envelope me-1"></i> Kontak
-                            </a>
-                        </li>
                     @endauth
                 </ul>
                 
@@ -527,150 +542,99 @@
                             </span>
                         </li>
                         
-                        <!-- Notifications Dropdown -->
+                        <!-- Profile Dropdown -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-bell"></i>
-                                @php
-                                    $unreadCount = 0;
-                                    try {
-                                        $unreadCount = auth()->user()->unreadNotifications()->count();
-                                    } catch (\Exception $e) {
-                                        // Table doesn't exist yet
-                                    }
-                                @endphp
-                                @if($unreadCount > 0)
-                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                        {{ $unreadCount }}
-                                        <span class="visually-hidden">unread notifications</span>
-                                    </span>
-                                @endif
-                            </a>
-                            <div class="dropdown-menu dropdown-menu-end p-0" style="min-width: 300px;">
-                                <div class="dropdown-header bg-light py-3">
-                                    <h6 class="mb-0">Notifikasi</h6>
-                                    @if($unreadCount > 0)
-                                        <a href="#" class="small text-primary" onclick="markAllAsRead()">
-                                            Tandai semua terbaca
-                                        </a>
-                                    @endif
-                                </div>
-                                <div class="dropdown-list custom-scrollbar" style="max-height: 300px; overflow-y: auto;">
-                                    @php
-                                        $notifications = [];
-                                        try {
-                                            $notifications = auth()->user()->notifications()->take(5)->get();
-                                        } catch (\Exception $e) {
-                                            // Table doesn't exist yet
-                                        }
-                                    @endphp
-                                    
-                                    @forelse($notifications as $notification)
-                                        <a href="{{ $notification->data['link'] ?? '#' }}" 
-                                        class="dropdown-item d-flex align-items-center py-3 border-bottom"
-                                        onclick="markAsRead('{{ $notification->id }}')">
-                                            <div class="flex-shrink-0 me-3">
-                                                <div class="rounded-circle bg-{{ $notification->data['type'] ?? 'primary' }} p-2">
-                                                    <i class="fas fa-{{ $notification->data['icon'] ?? 'bell' }} text-white"></i>
-                                                </div>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <div class="d-flex justify-content-between">
-                                                    <h6 class="mb-1">{{ $notification->data['title'] ?? 'Notifikasi' }}</h6>
-                                                    <small class="text-muted">{{ $notification->created_at->diffForHumans() }}</small>
-                                                </div>
-                                                <p class="mb-0 text-muted small">{{ Str::limit($notification->data['message'] ?? '', 50) }}</p>
-                                            </div>
-                                            @if(!$notification->read_at)
-                                                <span class="badge bg-primary rounded-pill ms-2">Baru</span>
-                                            @endif
-                                        </a>
-                                    @empty
-                                        <div class="dropdown-item text-center py-4">
-                                            <i class="fas fa-bell-slash fa-2x text-muted mb-2"></i>
-                                            <p class="text-muted mb-0">Tidak ada notifikasi</p>
-                                        </div>
-                                    @endforelse
-                                </div>
-                                <div class="dropdown-footer text-center py-2">
-                                    <a href="{{ route('notifikasi.index') }}" class="text-primary small">
-                                        Lihat semua notifikasi <i class="fas fa-arrow-right ms-1"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </li>
-                        
-                        <!-- User Dropdown -->
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" 
+                            role="button" data-bs-toggle="dropdown">
                                 @if(auth()->user()->profile_photo_path)
                                     <img src="{{ auth()->user()->profile_photo_url }}" 
-                                         alt="{{ auth()->user()->name }}" 
-                                         class="rounded-circle me-2" 
-                                         style="width: 32px; height: 32px; object-fit: cover;">
+                                        alt="{{ auth()->user()->name }}" 
+                                        class="rounded-circle me-2" 
+                                        style="width: 32px; height: 32px; object-fit: cover;">
                                 @else
                                     <div class="rounded-circle bg-light text-dark d-flex align-items-center justify-content-center me-2" 
-                                         style="width: 32px; height: 32px;">
+                                        style="width: 32px; height: 32px;">
                                         <span class="fw-bold">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
                                     </div>
                                 @endif
-                                <span class="d-none d-lg-inline">{{ auth()->user()->name }}</span>
+                                <span class="d-none d-lg-inline">{{ Str::limit(auth()->user()->name, 10) }}</span>
                             </a>
+                            
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li class="dropdown-header">
-                                    <div class="d-flex align-items-center">
-                                        @if(auth()->user()->profile_photo_path)
-                                            <img src="{{ auth()->user()->profile_photo_url }}" 
-                                                 alt="{{ auth()->user()->name }}" 
-                                                 class="rounded-circle me-2" 
-                                                 style="width: 40px; height: 40px; object-fit: cover;">
-                                        @else
-                                            <div class="rounded-circle bg-netra text-white d-flex align-items-center justify-content-center me-2" 
-                                                 style="width: 40px; height: 40px;">
-                                                <span class="fw-bold">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
-                                            </div>
-                                        @endif
-                                        <div>
-                                            <h6 class="mb-0">{{ auth()->user()->name }}</h6>
-                                            <small class="text-muted">{{ auth()->user()->email }}</small>
+                                <!-- Header -->
+                                <li>
+                                    <div class="px-3 py-2">
+                                        <div class="fw-bold">{{ auth()->user()->name }}</div>
+                                        <small class="text-muted">{{ auth()->user()->email }}</small>
+                                        @if(auth()->user()->isWarga())
+                                        <div class="mt-1">
+                                            <i class="fas fa-coins text-warning me-1"></i>
+                                            <strong>{{ number_format(auth()->user()->total_points ?? 0) }}</strong> pts
                                         </div>
+                                        @endif
                                     </div>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                                 
+                                <!-- Profile -->
                                 <li>
-                                    <a class="dropdown-item {{ request()->routeIs('profile.*') ? 'active' : '' }}" 
-                                       href="{{ route('profile.edit') }}">
-                                        <i class="fas fa-user me-2"></i> Profil
+                                    <a class="dropdown-item" href="{{ route('profile.edit') }}">
+                                        <i class="fas fa-user me-2"></i> Profile
                                     </a>
                                 </li>
                                 
+                                <!-- Notifications -->
                                 <li>
-                                    <a class="dropdown-item {{ request()->routeIs('dashboard') ? 'active' : '' }}" 
-                                       href="{{ route('dashboard') }}">
-                                        <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                                    <a class="dropdown-item position-relative" href="{{ route('notifikasi.index') }}">
+                                        <i class="fas fa-bell me-2"></i> Notifications
+                                        @php
+                                            $unreadCount = 0;
+                                            try {
+                                                $unreadCount = auth()->user()->unreadNotifications()->count();
+                                            } catch (\Exception $e) {
+                                                // Table doesn't exist yet
+                                            }
+                                        @endphp
+                                        @if($unreadCount > 0)
+                                            <span class="position-absolute top-50 end-0 translate-middle-y badge rounded-pill bg-danger me-3" 
+                                                style="font-size: 0.6rem; padding: 2px 5px;">
+                                                {{ $unreadCount }}
+                                            </span>
+                                        @endif
                                     </a>
                                 </li>
                                 
-                                <li><hr class="dropdown-divider"></li>
+                                <!-- Dashboard by Role -->
+                                @if(auth()->user()->isAdmin())
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('admin.dashboard') }}">
+                                        <i class="fas fa-tachometer-alt me-2"></i> Admin Panel
+                                    </a>
+                                </li>
+                                @endif
                                 
                                 <!-- Theme Switcher -->
-                                <li class="dropdown-item">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span><i class="fas fa-moon me-2"></i> Mode Gelap</span>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <div class="px-3 py-2">
                                         <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" id="themeSwitch">
+                                            <input class="form-check-input" type="checkbox" id="themeSwitchDropdown" 
+                                                {{ (Cookie::get('theme', 'light') == 'dark') ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="themeSwitchDropdown">
+                                                <i class="fas fa-moon me-2"></i> Dark Mode
+                                            </label>
                                         </div>
                                     </div>
                                 </li>
                                 
                                 <li><hr class="dropdown-divider"></li>
                                 
+                                <!-- Logout -->
                                 <li>
-                                    <form method="POST" action="{{ route('logout') }}">
+                                    <form method="POST" action="{{ route('logout') }}" class="d-inline">
                                         @csrf
                                         <button type="submit" class="dropdown-item text-danger">
-                                            <i class="fas fa-sign-out-alt me-2"></i> Logout
+                                            <i class="fas fa-sign-out-alt me-2"></i> Log Out
                                         </button>
                                     </form>
                                 </li>
@@ -778,8 +742,6 @@
         </div>
     </footer>
 
-    <!-- Bootstrap 5 JS Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- jQuery (optional, if needed) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -799,51 +761,26 @@
         // Theme switcher
         document.addEventListener('DOMContentLoaded', function() {
             const themeSwitch = document.getElementById('themeSwitch');
-            const currentTheme = localStorage.getItem('theme') || 
-                                 document.documentElement.getAttribute('data-bs-theme') || 
-                                 'light';
-            
-            // Set initial state
-            if (currentTheme === 'dark') {
-                themeSwitch.checked = true;
-                document.documentElement.setAttribute('data-bs-theme', 'dark');
-            }
-            
-            // Theme switch handler
-            themeSwitch.addEventListener('change', function() {
-                if (this.checked) {
+            if (themeSwitch) {
+                const currentTheme = localStorage.getItem('theme') || 
+                                     document.documentElement.getAttribute('data-bs-theme') || 
+                                     'light';
+                
+                // Set initial state
+                if (currentTheme === 'dark') {
+                    themeSwitch.checked = true;
                     document.documentElement.setAttribute('data-bs-theme', 'dark');
-                    localStorage.setItem('theme', 'dark');
-                    
-                    // Save preference via AJAX
-                    saveThemePreference('dark');
-                } else {
-                    document.documentElement.setAttribute('data-bs-theme', 'light');
-                    localStorage.setItem('theme', 'light');
-                    
-                    // Save preference via AJAX
-                    saveThemePreference('light');
                 }
-            });
-            
-            // Save theme preference via AJAX
-            function saveThemePreference(theme) {
-                fetch('{{ route("profile.preferences.update") }}', {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    },
-                    body: JSON.stringify({
-                        theme: theme
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Preferensi tema disimpan:', data);
-                })
-                .catch(error => {
-                    console.error('Error menyimpan preferensi tema:', error);
+                
+                // Theme switch handler
+                themeSwitch.addEventListener('change', function() {
+                    if (this.checked) {
+                        document.documentElement.setAttribute('data-bs-theme', 'dark');
+                        localStorage.setItem('theme', 'dark');
+                    } else {
+                        document.documentElement.setAttribute('data-bs-theme', 'light');
+                        localStorage.setItem('theme', 'light');
+                    }
                 });
             }
             
@@ -857,197 +794,10 @@
                     }
                 });
             });
-            
-            // Active nav link highlighting
-            const currentPath = window.location.pathname;
-            document.querySelectorAll('.navbar-nav .nav-link, .dropdown-item').forEach(link => {
-                if (link.href === window.location.href) {
-                    link.classList.add('active');
-                }
-                
-                // For dropdown parents
-                if (link.classList.contains('dropdown-toggle')) {
-                    const dropdownItems = link.parentElement.querySelectorAll('.dropdown-item');
-                    let hasActiveChild = false;
-                    dropdownItems.forEach(item => {
-                        if (item.href === window.location.href) {
-                            hasActiveChild = true;
-                        }
-                    });
-                    if (hasActiveChild) {
-                        link.classList.add('active');
-                    }
-                }
-            });
         });
-        
-        // Toast notification function
-        function showToast(message, type = 'success') {
-            const toastHtml = `
-                <div class="toast align-items-center text-bg-${type} border-0" role="alert">
-                    <div class="d-flex">
-                        <div class="toast-body">
-                            ${message}
-                        </div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                    </div>
-                </div>
-            `;
-            
-            const toastContainer = document.getElementById('toast-container') || createToastContainer();
-            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-            
-            const toastElement = toastContainer.lastElementChild;
-            const toast = new bootstrap.Toast(toastElement);
-            toast.show();
-            
-            // Remove toast after it hides
-            toastElement.addEventListener('hidden.bs.toast', function() {
-                this.remove();
-            });
-        }
-        
-        function createToastContainer() {
-            const container = document.createElement('div');
-            container.id = 'toast-container';
-            container.className = 'toast-container position-fixed top-0 end-0 p-3';
-            container.style.zIndex = '1060';
-            document.body.appendChild(container);
-            return container;
-        }
-        
-        // Confirm dialog helper
-        function confirmAction(message, callback) {
-            if (confirm(message)) {
-                if (typeof callback === 'function') {
-                    callback();
-                }
-                return true;
-            }
-            return false;
-        }
-        
-        // Format number with commas
-        function formatNumber(number) {
-            return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        }
-        
-        // Format date
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('id-ID', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric'
-            });
-        }
-        
-        // Format date time
-        function formatDateTime(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('id-ID', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
-        
-        // Get cookie helper
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-        }
-
-        // Mark all notifications as read
-        function markAllAsRead() {
-            fetch('{{ route("notifikasi.read-all") }}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Remove badge
-                    const badge = document.querySelector('.nav-link .badge');
-                    if (badge) badge.remove();
-                    
-                    // Remove "New" badges from notifications
-                    document.querySelectorAll('.dropdown-list .badge').forEach(badge => {
-                        badge.remove();
-                    });
-                    
-                    // Show success message
-                    showToast('Semua notifikasi ditandai terbaca', 'success');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('Gagal menandai notifikasi terbaca', 'error');
-            });
-        }
-
-        // Mark single notification as read
-        function markAsRead(notificationId) {
-            fetch(`/notifikasi/${notificationId}/read`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Remove "New" badge from this notification
-                    const badge = document.querySelector(`[data-notification="${notificationId}"] .badge`);
-                    if (badge) badge.remove();
-                    
-                    // Update unread count
-                    const unreadBadge = document.querySelector('.nav-link .badge');
-                    if (unreadBadge) {
-                        const currentCount = parseInt(unreadBadge.textContent);
-                        if (currentCount > 1) {
-                            unreadBadge.textContent = currentCount - 1;
-                        } else {
-                            unreadBadge.remove();
-                        }
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
     </script>
     
     <!-- Page Specific Scripts -->
     @stack('scripts')
-    
-    <!-- Livewire Scripts (if using Livewire) -->
-    @livewireScripts
-    
-    <!-- SweetAlert2 (optional) -->
-    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        // SweetAlert2 configuration
-        const Swal = window.Swal;
-        if (Swal) {
-            Swal.mixin({
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true,
-                didOpen: (toast) => {
-                    toast.addEventListener('mouseenter', Swal.stopTimer);
-                    toast.addEventListener('mouseleave', Swal.resumeTimer);
-                }
-            });
-        }
-    </script>
 </body>
 </html>

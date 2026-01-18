@@ -71,10 +71,6 @@
                                 <td>{{ number_format($transaksi->total_berat ?? 0, 1) }} kg</td>
                             </tr>
                             <tr>
-                                <th>Total Harga</th>
-                                <td>Rp {{ number_format($transaksi->total_harga ?? 0, 0, ',', '.') }}</td>
-                            </tr>
-                            <tr>
                                 <th>Total Poin</th>
                                 <td>{{ number_format($transaksi->total_poin ?? 0, 0, ',', '.') }} poin</td>
                             </tr>
@@ -99,11 +95,7 @@
                         <thead>
                             <tr>
                                 <th>Kategori</th>
-                                <th>Jenis</th>
                                 <th>Berat (kg)</th>
-                                <th>Harga/kg</th>
-                                <th>Poin/kg</th>
-                                <th>Subtotal</th>
                                 <th>Poin</th>
                             </tr>
                         </thead>
@@ -111,23 +103,18 @@
                             @forelse($transaksi->detailTransaksi ?? [] as $detail)
                             <tr>
                                 <td>{{ $detail->kategori->nama_kategori ?? 'N/A' }}</td>
-                                <td>{{ $detail->kategori->jenis_sampah ?? 'N/A' }}</td>
                                 <td>{{ number_format($detail->berat ?? 0, 1) }}</td>
-                                <td>Rp {{ number_format($detail->kategori->harga_per_kg ?? 0, 0, ',', '.') }}</td>
-                                <td>{{ $detail->kategori->poin_per_kg ?? 0 }}</td>
-                                <td>Rp {{ number_format($detail->harga ?? 0, 0, ',', '.') }}</td>
                                 <td>{{ number_format($detail->poin ?? 0, 0, ',', '.') }}</td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="7" class="text-center py-3">Tidak ada detail transaksi</td>
+                                <td colspan="3" class="text-center py-3">Tidak ada detail transaksi</td>
                             </tr>
                             @endforelse
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <th colspan="5" class="text-end">Total:</th>
-                                <th>Rp {{ number_format($transaksi->total_harga ?? 0, 0, ',', '.') }}</th>
+                                <th colspan="2" class="text-end">Total:</th>
                                 <th>{{ number_format($transaksi->total_poin ?? 0, 0, ',', '.') }} poin</th>
                             </tr>
                         </tfoot>
@@ -145,10 +132,6 @@
             </div>
             <div class="card-body">
                 <div class="text-center mb-3">
-                    @if(isset($transaksi->warga->qr_code) && $transaksi->warga->qr_code)
-                    <img src="{{ asset('storage/' . $transaksi->warga->qr_code) }}" 
-                         alt="QR Code" width="120" class="img-thumbnail mb-2">
-                    @endif
                     <h5>{{ $transaksi->warga->name ?? 'N/A' }}</h5>
                 </div>
                 
@@ -173,15 +156,6 @@
                         </td>
                     </tr>
                 </table>
-                
-                <div class="mt-3">
-                    @if(isset($transaksi->warga->id))
-                    <a href="{{ route('petugas.warga.show', $transaksi->warga->id) }}" 
-                       class="btn btn-netra-outline w-100">
-                        <i class="bi bi-person me-2"></i>Lihat Profil Warga
-                    </a>
-                    @endif
-                </div>
             </div>
         </div>
         
@@ -198,9 +172,6 @@
                         <i class="bi bi-plus-circle me-2"></i>Transaksi Baru dengan Warga Ini
                     </a>
                     @endif
-                    <a href="{{ route('petugas.scan.index') }}" class="btn btn-netra-outline">
-                        <i class="bi bi-qr-code-scan me-2"></i>Scan QR Code Lain
-                    </a>
                 </div>
             </div>
         </div>

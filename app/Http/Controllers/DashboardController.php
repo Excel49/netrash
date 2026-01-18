@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Transaksi;
 use App\Models\KategoriSampah;
-use App\Models\PenarikanPoin;
 use App\Models\Notifikasi;
+use App\Models\DetailTransaksi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -40,9 +40,7 @@ class DashboardController extends Controller
         
         $totalRevenue = Transaksi::where('status', 'completed')->sum('total_harga');
         $totalSampah = Transaksi::where('status', 'completed')->sum('total_berat');
-        
-        $pendingPenarikan = PenarikanPoin::where('status', 'pending')->count();
-        $totalPendingPoin = PenarikanPoin::where('status', 'pending')->sum('jumlah_poin');
+
         
         // Recent Data
         $recentTransactions = Transaksi::with(['warga', 'petugas'])
@@ -77,8 +75,6 @@ class DashboardController extends Controller
             'totalTransaksi',
             'totalRevenue',
             'totalSampah',
-            'pendingPenarikan',
-            'totalPendingPoin',
             'recentTransactions',
             'recentNotifications',
             'chartLabels',
@@ -134,101 +130,143 @@ class DashboardController extends Controller
             })
             ->count();
         
-        // Rating petugas (jika ada fitur rating)
-        $averageRating = 4.5; // Default value
-        $totalRatings = 10; // Default value
-        
         // Transaksi terbaru (5 hari terakhir)
         $recentTransactions = Transaksi::with('warga')
             ->where('petugas_id', $petugasId)
-            ->whereDate('created_at', '>=', $today->subDays(5))
+            ->whereDate('created_at', '>=', $today->copy()->subDays(5))
             ->orderBy('created_at', 'desc')
             ->take(8)
             ->get();
         
-        // Warga teraktif (5 warga teratas)
-        $topWarga = User::where('role_id', 3)
-            ->whereHas('transaksiSebagaiWarga', function($query) use ($petugasId) {
-                $query->where('petugas_id', $petugasId);
-            })
-            ->withCount(['transaksiSebagaiWarga as total_transactions' => function($query) use ($petugasId) {
-                $query->where('petugas_id', $petugasId);
-            }])
-            ->orderBy('total_transactions', 'desc')
-            ->take(5)
-            ->get();
-        
-        // Data performa 7 hari terakhir untuk chart
-        $performanceData = [];
-        $performanceLabels = [];
-        $performanceWeight = [];
+        // Data grafik transaksi 7 hari terakhir
+        $chartData = [];
+        $chartLabels = [];
         
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i);
-            $dayLabel = $date->translatedFormat('D'); // Singkatan hari (Sen, Sel, dst)
+            $dayLabel = $date->translatedFormat('D'); // Singkatan hari
             
             $dayTransactions = Transaksi::where('petugas_id', $petugasId)
                 ->whereDate('created_at', $date)
                 ->count();
-                
-            $dayWeight = Transaksi::where('petugas_id', $petugasId)
-                ->whereDate('created_at', $date)
-                ->sum('total_berat');
             
-            $performanceLabels[] = $dayLabel;
-            $performanceData[] = $dayTransactions;
-            $performanceWeight[] = $dayWeight;
+            $chartLabels[] = $dayLabel;
+            $chartData[] = $dayTransactions;
         }
         
-        // Kategori sampah untuk referensi
-        $kategoriSampah = KategoriSampah::where('status', true)->get();
+        // Data grafik kategori sampah (7 hari terakhir)
+        $categoryData = $this->getCategoryDistributionData($petugasId);
         
-        // Data yang dibutuhkan view
-        $data = [
+        // Data untuk dashboard
+        return view('petugas.dashboard', [
             'todayTransactions' => $transaksiHariIni,
             'todayWeight' => $beratHariIni,
             'todayPoints' => $poinHariIni,
+            'monthlyTransactions' => $transaksiBulanIni,
+            'monthlyWeight' => $beratBulanIni,
             'uniqueWargaToday' => $wargaHariIni,
             'totalPointsDistributed' => $totalPoinDiberikan,
             'totalWargaServed' => $wargaTerlayani,
-            'averageRating' => $averageRating,
-            'totalRatings' => $totalRatings,
             'recentTransactions' => $recentTransactions,
-            'topWarga' => $topWarga,
-            'performanceLabels' => $performanceLabels,
-            'performanceData' => $performanceData,
-            'performanceWeight' => $performanceWeight,
-            'transaksiHariIni' => $transaksiHariIni, // untuk kompatibilitas
-            'beratHariIni' => $beratHariIni, // untuk kompatibilitas
-            'transaksiBulanIni' => $transaksiBulanIni, // untuk kompatibilitas
-            'beratBulanIni' => $beratBulanIni, // untuk kompatibilitas
-            'totalPoinDiberikan' => $totalPoinDiberikan, // untuk kompatibilitas
-            'kategoriSampah' => $kategoriSampah, // untuk kompatibilitas
-        ];
+            'chartData' => [
+                'labels' => $chartLabels,
+                'transactions' => $chartData
+            ],
+            'categoryData' => $categoryData
+        ]);
+    }
+    
+    /**
+     * Get category distribution data for chart
+     */
+    private function getCategoryDistributionData($petugasId)
+    {
+        // Ambil data 7 hari terakhir
+        $startDate = Carbon::now()->subDays(6)->startOfDay();
         
-        return view('petugas.dashboard', $data);
+        // Ambil transaksi dalam 7 hari terakhir
+        $transactions = Transaksi::where('petugas_id', $petugasId)
+            ->where('created_at', '>=', $startDate)
+            ->with(['detailTransaksi.kategori'])
+            ->get();
+        
+        // Kumpulkan data per kategori
+        $categoryWeights = [];
+        
+        foreach ($transactions as $transaksi) {
+            foreach ($transaksi->detailTransaksi as $detail) {
+                if ($detail->kategori) {
+                    $categoryName = $detail->kategori->nama_kategori;
+                    $weight = $detail->berat;
+                    
+                    if (!isset($categoryWeights[$categoryName])) {
+                        $categoryWeights[$categoryName] = 0;
+                    }
+                    
+                    $categoryWeights[$categoryName] += $weight;
+                }
+            }
+        }
+        
+        // Jika tidak ada data, beri contoh data
+        if (empty($categoryWeights)) {
+            return [
+                'labels' => ['Plastik', 'Kertas', 'Logam', 'Organik', 'Lainnya'],
+                'data' => [30, 25, 20, 15, 10]
+            ];
+        }
+        
+        // Urutkan berdasarkan berat (descending)
+        arsort($categoryWeights);
+        
+        // Ambil top 5 kategori
+        $topCategories = array_slice($categoryWeights, 0, 5, true);
+        
+        // Siapkan data untuk chart
+        $labels = array_keys($topCategories);
+        $data = array_values($topCategories);
+        
+        // Jika kurang dari 5 kategori, tambahkan kategori lainnya
+        if (count($labels) < 5) {
+            $otherWeight = array_sum(array_slice($categoryWeights, 5));
+            if ($otherWeight > 0) {
+                $labels[] = 'Lainnya';
+                $data[] = $otherWeight;
+            }
+        }
+        
+        return [
+            'labels' => $labels,
+            'data' => $data
+        ];
     }
     
     public function wargaDashboard()
     {
         $wargaId = Auth::id();
         $user = Auth::user();
+        $currentMonth = now()->month;
+        $currentYear = now()->year;
         
         // Statistics
         $totalTransaksi = Transaksi::where('warga_id', $wargaId)->count();
         $totalBerat = Transaksi::where('warga_id', $wargaId)->sum('total_berat');
         
-        $pendingPenarikan = PenarikanPoin::where('warga_id', $wargaId)
-            ->where('status', 'pending')
+        // Statistics for current month
+        $poinBulanIni = Transaksi::where('warga_id', $wargaId)
+            ->whereMonth('created_at', $currentMonth)
+            ->whereYear('created_at', $currentYear)
+            ->sum('total_poin');
+            
+        $beratBulanIni = Transaksi::where('warga_id', $wargaId)
+            ->whereMonth('created_at', $currentMonth)
+            ->whereYear('created_at', $currentYear)
+            ->sum('total_berat');
+            
+        $transaksiBulanIni = Transaksi::where('warga_id', $wargaId)
+            ->whereMonth('created_at', $currentMonth)
+            ->whereYear('created_at', $currentYear)
             ->count();
-            
-        $totalPendingPoin = PenarikanPoin::where('warga_id', $wargaId)
-            ->where('status', 'pending')
-            ->sum('jumlah_poin');
-            
-        $totalPoinDitarik = PenarikanPoin::where('warga_id', $wargaId)
-            ->where('status', 'completed')
-            ->sum('jumlah_poin');
         
         // Recent Transactions
         $recentTransactions = Transaksi::with('petugas')
@@ -257,9 +295,9 @@ class DashboardController extends Controller
             'user',
             'totalTransaksi',
             'totalBerat',
-            'pendingPenarikan',
-            'totalPendingPoin',
-            'totalPoinDitarik',
+            'poinBulanIni',
+            'beratBulanIni',
+            'transaksiBulanIni',
             'recentTransactions',
             'chartLabels',
             'chartData'

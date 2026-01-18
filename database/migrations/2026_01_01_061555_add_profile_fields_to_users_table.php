@@ -13,16 +13,16 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             // Cek dulu apakah kolom sudah ada sebelum menambahkan
-            if (!Schema::hasColumn('users', 'phone')) {
-                $table->string('phone')->nullable()->after('email');
+            if (!Schema::hasColumn('users', 'no_hp')) {
+                $table->string('no_hp')->nullable()->after('email');
             }
             
-            if (!Schema::hasColumn('users', 'address')) {
-                $table->text('address')->nullable()->after('phone');
+            if (!Schema::hasColumn('users', 'alamat')) {
+                $table->text('alamat')->nullable()->after('no_hp');
             }
             
             if (!Schema::hasColumn('users', 'bio')) {
-                $table->text('bio')->nullable()->after('address');
+                $table->text('bio')->nullable()->after('alamat');
             }
             
             if (!Schema::hasColumn('users', 'profile_photo_path')) {
@@ -54,7 +54,7 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             // Hanya drop kolom jika mereka ada
-            $columns = ['phone', 'address', 'bio', 'profile_photo_path', 'nik', 'rt_rw', 'area', 'total_points'];
+            $columns = ['no_hp', 'alamat', 'bio', 'profile_photo_path', 'nik', 'rt_rw', 'area', 'total_points'];
             
             foreach ($columns as $column) {
                 if (Schema::hasColumn('users', $column)) {

@@ -10,6 +10,52 @@ use Illuminate\Support\Facades\Auth;
 
 class PetugasController extends Controller
 {
+    public function scanWithEmail(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email'
+    ]);
+    
+    $user = User::where('role_id', 3) // Warga saja
+        ->where('email', $request->email)
+        ->withCount(['transaksiSebagaiWarga as total_transactions'])
+        ->first();
+    
+    if (!$user) {
+        return back()->with('error', 'Warga dengan email tersebut tidak ditemukan');
+    }
+    
+    return back()->with('warga', $user);
+}
+    public function scanQR(Request $request)
+{
+    $request->validate([
+        'qr_data' => 'required|string'
+    ]);
+    
+    try {
+        $qrData = json_decode($request->qr_data, true);
+        
+        if (!$qrData || !isset($qrData['user_id'])) {
+            return back()->with('error', 'QR Code tidak valid');
+        }
+        
+        $user = User::where('id', $qrData['user_id'])
+            ->where('role_id', 3)
+            ->withCount(['transaksiSebagaiWarga as total_transactions'])
+            ->first();
+            
+        if (!$user) {
+            return back()->with('error', 'Warga tidak ditemukan');
+        }
+        
+        return back()->with('warga', $user);
+        
+    } catch (\Exception $e) {
+        return back()->with('error', 'QR Code tidak valid');
+    }
+}
+
     public function statistik()
     {
         $petugasId = Auth::id();
@@ -381,5 +427,68 @@ private function getStatsData($petugasId)
             ->whereMonth('created_at', now()->month)
             ->sum('total_poin') ?? 0,
     ];
+}
+
+// Tambahkan method ini di PetugasController (setelah scanQR)
+public function searchByEmailApi(Request $request)
+{
+    // Validasi user adalah petugas
+    if (Auth::user()->role_id !== 2) {
+        return response()->json([
+            'success' => false,
+            'error' => 'Hanya petugas yang dapat mengakses'
+        ], 403);
+    }
+    
+    $request->validate([
+        'email' => 'required|email'
+    ]);
+    
+    try {
+        \Log::info('Search Email API Request:', ['email' => $request->email]);
+        
+        // AMBIL LANGSUNG DARI DATABASE
+        $warga = User::where('email', $request->email)
+            ->where('role_id', 3) // Pastikan hanya warga
+            ->first();
+        
+        \Log::info('Search Result:', ['found' => !!$warga, 'user' => $warga]);
+        
+        if (!$warga) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Warga dengan email "' . $request->email . '" tidak ditemukan. Pastikan email benar dan warga sudah terdaftar.'
+            ], 404);
+        }
+        
+        // Hitung total transaksi
+        $totalTransactions = $warga->transaksiSebagaiWarga()->count();
+        
+        // Data warga ditemukan dari database
+        return response()->json([
+            'success' => true,
+            'user' => [
+                'id' => $warga->id,
+                'name' => $warga->name,
+                'email' => $warga->email,
+                'phone' => $warga->phone ?? '-',
+                'address' => $warga->address ?? '-',
+                'total_points' => $warga->total_points ?? 0,
+                'profile_photo_url' => $warga->profile_photo_url ?? null,
+                'qr_code' => $warga->qr_code ?? null,
+                'total_transactions' => $totalTransactions,
+                'registered_at' => $warga->created_at->format('d-m-Y')
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Search Email API Error: ' . $e->getMessage());
+        \Log::error('Error Trace:', ['trace' => $e->getTraceAsString()]);
+        
+        return response()->json([
+            'success' => false,
+            'error' => 'Terjadi kesalahan sistem: ' . $e->getMessage()
+        ], 500);
+    }
 }
 }

@@ -6,12 +6,14 @@
 <div class="row mb-4">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center">
-            <h2 class="mb-0">Riwayat Transaksi</h2>
-            <a href="{{ route('warga.dashboard') }}" class="btn btn-netra-outline">
-                <i class="bi bi-arrow-left me-2"></i>Kembali
-            </a>
+            <h2 class="mb-0">Riwayat Transaksi Sampah</h2>
+            <div>
+                <a href="{{ route('warga.dashboard') }}" class="btn btn-netra-outline">
+                    <i class="bi bi-arrow-left me-2"></i>Kembali
+                </a>
+            </div>
         </div>
-        <p class="text-muted">Daftar semua transaksi sampah Anda</p>
+        <p class="text-muted">Daftar semua transaksi setoran sampah Anda</p>
     </div>
 </div>
 
@@ -101,7 +103,7 @@
                     <tr>
                         <td>{{ $trx->tanggal_transaksi->format('d/m/Y H:i') }}</td>
                         <td>{{ $trx->kode_transaksi }}</td>
-                        <td>{{ $trx->petugas->name }}</td>
+                        <td>{{ $trx->petugas->name ?? 'Sistem' }}</td>
                         <td>{{ number_format($trx->total_berat, 1) }}</td>
                         <td class="text-success fw-bold">+{{ number_format($trx->total_poin, 0, ',', '.') }}</td>
                         <td>

@@ -65,7 +65,12 @@ class User extends Authenticatable
     {
         return $this->role_id === 1;
     }
-    
+
+    public function wishlist()
+{
+    return $this->belongsToMany(Barang::class, 'wishlists')
+                ->withTimestamps();
+}
     /**
      * Check if user is petugas
      */
@@ -103,6 +108,12 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
 
+    // ALIAS untuk kompatibilitas dengan kode yang sudah ada
+    public function transaksi(): HasMany
+    {
+        return $this->transaksiSebagaiWarga();
+    }
+
     public function transaksiSebagaiWarga(): HasMany
     {
         return $this->hasMany(Transaksi::class, 'warga_id');
@@ -111,11 +122,6 @@ class User extends Authenticatable
     public function transaksiSebagaiPetugas(): HasMany
     {
         return $this->hasMany(Transaksi::class, 'petugas_id');
-    }
-
-    public function penarikanPoin(): HasMany
-    {
-        return $this->hasMany(PenarikanPoin::class, 'warga_id');
     }
 
     public function notifikasi(): HasMany
